@@ -1,0 +1,52 @@
+p,
+span {
+  margin: 0;
+  font-family: "Inter";
+  line-height: 100%;
+  letter-spacing: 2%;
+  line-height: 100%;
+}
+span.label-bold {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+span.body {
+  font-weight: 400;
+  font-size: 12px;
+  color: #000000;
+}
+span.label {
+  font-weight: 400;
+  font-size: 14px;
+}
+
+span.label-light {
+  font-weight: 400;
+  font-style: italic;
+  font-size: 12px;
+  color: rgba(23, 2, 0, 0.5);
+}
+
+span.ita {
+  font-style: italic;
+}
+
+span.light {
+  font-style: italic;
+  color: rgba(23, 2, 0, 0.5);
+}
+
+span.under,
+p.under {
+  text-decoration: underline;
+}
+
+span.body-bold {
+  font-family: Inter;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 100%;
+  letter-spacing: 2%;
+}

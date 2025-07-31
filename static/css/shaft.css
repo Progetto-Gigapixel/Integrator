@@ -1,0 +1,58 @@
+#shaft-content {
+  height: auto;
+  padding: 20px;
+}
+
+#flatfield-path-frame {
+  height: auto;
+}
+
+.label-regular {
+  font-family: "Inter";
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  letter-spacing: 0.02em;
+  color: #170200;
+  margin: 0;
+}
+#shaft-pause-btn,
+#shaft-pause-dev-btn {
+  width: 40px;
+  height: 40px;
+
+  border: 2px solid #f6e5d2;
+  border-radius: 8px;
+  cursor: pointer;
+}
+#analysis-result-shaft-btn {
+  background: #ff8a11;
+}
+#analysis-results span {
+  font-style: italic;
+
+  color: #ff8a11;
+}
+
+#analysis-results {
+  display: none;
+}
+
+#shaft-analyzing {
+  display: none;
+}
+
+#next-shaft {
+  display: none;
+}
+
+#shaft-development-results span {
+  font-family: Inter;
+  font-weight: 600;
+  font-style: italic;
+  font-size: 14px;
+  line-height: 150%;
+  letter-spacing: 2%;
+  vertical-align: middle;
+  color: #ff8a11;
+}

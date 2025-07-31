@@ -1,0 +1,81 @@
+@import url("utility/gap.css");
+@import url("utility/pad.css");
+div {
+  width: auto;
+  height: auto;
+  box-sizing: border-box;
+}
+
+div.l-r {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+div.l-c {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+div .wf {
+  width: 100% !important;
+}
+div .hf {
+  height: 100% !important;
+}
+
+div .jsb {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  align-content: flex-start;
+}
+
+.ai-c {
+  align-items: center !important;
+}
+.ji-c {
+  justify-items: center !important;
+}
+.jc-c {
+  justify-content: center !important;
+}
+.ai-fs {
+  align-items: flex-start !important;
+}
+
+.h-auto {
+  height: auto !important;
+}
+/* Justify Content */
+div .jc-sb {
+  justify-content: space-between !important;
+}
+
+.absolute {
+  position: absolute !important;
+}
+
+.bg-beige {
+  background: #f6e5d2;
+}
+.bg-white {
+  background: #fffdfa;
+}
+.bg-light-beige {
+  background: #fef6ec;
+}
+.border-b-beige {
+  border-bottom: 1px solid #f6e5d2;
+}
+
+.hide {
+  display: none !important;
+}
+
+.disable {
+  pointer-events: none !important;
+  opacity: 0.6 !important;
+}

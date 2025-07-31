@@ -1,0 +1,41 @@
+#modelviewer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 20px;
+  gap: 24px;
+  width: 100%;
+  height: auto;
+  box-sizing: border-box;
+}
+
+#modelviewer-art-piece-frame {
+  padding-left: 2px;
+  padding-right: 2px;
+}
+#modelviewer-templating-results span {
+  color: #ff8a11;
+}
+#modelviewer-template-zip-frame {
+  width: 125px;
+}
+#modelviewer-lenght {
+  width: 120px;
+}
+#modelviewer-width {
+  width: 120px;
+}
+
+#unity-label {
+  font-family: Inter;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 100%;
+  letter-spacing: 2%;
+  text-decoration: underline;
+  text-decoration-style: solid;
+  /* text-decoration-offset: 0%; */
+  text-decoration-thickness: 0%;
+  text-decoration-skip-ink: auto;
+  cursor: pointer;
+}

@@ -1,0 +1,56 @@
+.dropdown-btn {
+  padding: 8px 15px;
+  height: 40px;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.custom-dropdown {
+  position: relative;
+  background: #fffdfa;
+  border: 1px solid #f6e5d2;
+  border-radius: 4px;
+}
+.dropdown-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.dropdown-arrow {
+  transition: transform 0.3s ease;
+}
+
+.dropdown-btn.active .dropdown-selected {
+  opacity: 0.6;
+}
+.dropdown-btn.active svg {
+  opacity: 0.6;
+}
+
+.dropdown-btn.active .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.dropdown-content {
+  /* display: none; */
+  position: relative;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  padding: 0px 15px 8px 15px;
+  gap: 8px;
+  overflow: hidden; /* Ensures smooth animation */
+  width: 100%;
+  max-height: 0; /* Start collapsed */
+  display: none;
+  transition: none;
+}
+
+.dropdown-item {
+  display: block;
+
+  text-decoration: none;
+  color: #333;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}

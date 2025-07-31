@@ -1,0 +1,313 @@
+#art-piece {
+  padding: 12px 20px;
+  height: 244px;
+  /* Light Beige */
+  background: #f6e5d2;
+  border-radius: 10px;
+}
+
+.rounded-10 {
+  border-radius: 10px;
+}
+#frame #id-art-piece {
+  padding: 12px 20px;
+  background: #fffdfa;
+  border-bottom: 1px solid #f6e5d2;
+}
+
+#frame #id-art-piece #museum {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 0px;
+  gap: 17px;
+  width: auto;
+  height: 100%;
+  flex: none;
+  order: 1;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+.parameters-frame {
+  box-sizing: border-box;
+  /* Auto layout */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 12px 20px;
+  gap: 12px;
+
+  width: auto;
+  height: fit-content;
+
+  background: #fffdfa;
+  border-bottom: 1px solid #f6e5d2;
+  flex: none;
+  order: 1;
+  align-self: stretch;
+  flex-grow: 0;
+}
+.parameters-frame #frame {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-content: flex-start;
+  padding: 0px;
+  gap: 12px;
+
+  width: auto;
+  height: fit-content;
+
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+.parameters-frame #frame #stand-frame {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  padding: 0px;
+  gap: 12px;
+  width: fit-content;
+  height: fit-content;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+
+.parameters-frame #frame #output-frame {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0px;
+  gap: 12px;
+  width: fit-content;
+  height: fit-content;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+  /* opacity: 0.3; */
+}
+#stand-frame #stand,
+#output-frame #output {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  padding: 0px;
+  gap: 10px;
+  width: 50px;
+  height: 40px;
+}
+
+#stand-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+#validate-frame {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 12px 20px;
+  gap: 10px;
+  width: auto;
+  height: fit-content;
+
+  flex: none;
+  order: 3;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+.parameters-inner-label {
+  /* Total displacement distance of the stand. (xmax= 1700mm, ymax=1450mm) */
+  width: 100%;
+  height: 17px;
+
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 100%;
+  /* identical to box height */
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.02em;
+
+  color: #000000;
+
+  /* Inside auto layout */
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+}
+.parameters-inner-label span {
+  /* Total displacement distance of the stand. (xmax= 1700mm, ymax=1450mm) */
+
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 100%;
+  /* identical to box height */
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.02em;
+
+  color: #800a00;
+
+  /* Inside auto layout */
+  flex: none;
+  order: 0;
+  align-self: stretch;
+  flex-grow: 0;
+}
+
+.parameters-inner-frame {
+  /* Auto layout */
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  align-content: flex-start;
+
+  /* Inside auto layout */
+  flex: none;
+  order: 1;
+  align-self: stretch;
+  flex-grow: 0;
+
+  width: 100%;
+  height: fit-content;
+  gap: 24px;
+}
+
+.parameters-inner-frame .field-frame {
+  width: auto;
+  height: auto;
+  gap: 12px;
+  /* Frame 15 */
+  /* Auto layout */
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.parameters-inner-frame .field-frame p {
+  /* Length x(mm) */
+
+  width: auto;
+  height: auto;
+
+  /* Label */
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+
+  /* identical to box height */
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.02em;
+
+  color: #000000;
+  white-space: nowrap;
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+#displacement-x,
+#displacement-y {
+  width: 70px;
+}
+
+#step-distance-x,
+#step-distance-y {
+  width: 61px;
+}
+#shot-number-x,
+#shot-number-y {
+  width: 61px;
+}
+#vibration-time {
+  width: 61px;
+}
+
+#step-displacement-frame {
+  width: 100%;
+  height: fit-content;
+  gap: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+#shot-number-frame {
+  /* Hot white */
+  background: #fef6ec;
+  /* Light Beige */
+  border-bottom: 1px solid #f6e5d2;
+}
+
+#shot-number-frame-inner {
+  width: 100%;
+  height: fit-content;
+  gap: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+#vibration-time-label {
+  font-style: italic;
+}
+
+.grid-container {
+  display: flex;
+  justify-content: center;
+}
+
+.grid {
+  display: grid;
+  gap: 0;
+  border: 1px solid #c49a73;
+  background-color: white;
+  padding: 0px;
+  border-radius: 2px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  width: 400px;
+  height: 220px;
+}
+
+.grid-cell {
+  border: 1px solid #c49a73;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  transition: background-color 0.2s;
+  font-size: calc(min(600px / var(--columns), 400px / var(--rows)) * 0.2);
+}
+
+.grid-cell:hover {
+  background-color: #f9f5f0;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    width: 90vw;
+    height: 60vw;
+    max-width: 500px;
+    max-height: 330px;
+  }
+}

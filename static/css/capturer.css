@@ -1,0 +1,224 @@
+@import url(base.css);
+#capturer-content {
+  width: 100%;
+  height: auto;
+  box-sizing: border-box;
+}
+
+#capturer-art-piece-pos {
+  width: 100%;
+  height: auto;
+  background: #f6e5d2;
+  border: 1px solid #800a00;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+#target {
+  width: 32px;
+  height: 32px;
+  border-width: 1px;
+  position: relative;
+}
+
+#capturer-art-piece-canvas {
+  width: 400px;
+  height: 220px;
+  top: 115px;
+  left: 36px;
+  background: var(--beige, #fef6ec);
+  border: 1px solid #800a00;
+}
+
+#step-position-group {
+  width: 119px;
+  height: 119px;
+}
+#free-position-group {
+  width: 120px;
+  height: 120px;
+  position: relative;
+}
+#free-position-group-vertical {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  height: 100%;
+  justify-content: space-between;
+}
+#free-position-group-horizontal {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 100%;
+
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: auto;
+  justify-content: space-between;
+}
+
+#free-position-up {
+  transform: rotate(-90deg);
+}
+
+#free-position-down {
+  transform: rotate(90deg);
+}
+
+#free-position-left {
+  transform: rotate(180deg);
+}
+
+#free-position-right {
+}
+
+.grid-container {
+  display: flex;
+  justify-content: center;
+  position: relative;
+  width: 330px;
+  height: 220px;
+}
+
+.grid {
+  display: grid;
+  gap: 0;
+  border: 1px solid #c49a73;
+  background-color: white;
+  padding: 0px;
+  border-radius: 2px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  width: 330px;
+  height: 220px;
+
+  /* position: absolute;
+  top: 0px;
+  left: 0px; */
+}
+
+.grid-cell {
+  border: 1px dotted #c49a7386;
+  background-color: transparent;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  color: #666;
+  transition: background-color 0.2s;
+  font-size: calc(min(600px / var(--columns), 400px / var(--rows)) * 0.15);
+}
+
+.grid-cell:hover {
+  background-color: #f9f5f0;
+}
+
+.shot-grid-cell {
+  border: 1px dotted #c49a7386;
+  color: #666;
+  transition: background-color 0.2s;
+  position: absolute;
+  width: 330px;
+  height: 220px;
+}
+.shot-grid-cell:hover {
+  background-color: #f9f5f0;
+  z-index: 2;
+}
+#shot-grid-container {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+}
+
+@media (max-width: 768px) {
+  .grid {
+    width: 90vw;
+    max-width: 500px;
+    max-height: 330px;
+  }
+}
+#target {
+  position: absolute;
+  z-index: 10;
+  transition: all 0.3s ease-in-out;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+#vibration-ok-help {
+  height: 40px;
+  display: none;
+}
+#vibration-ok-label {
+  color: #ff8a11;
+}
+#vibration-ok-label.span {
+  font-family: Inter;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 100%;
+  letter-spacing: 2%;
+  text-decoration: underline;
+  text-decoration-style: solid;
+  /* text-decoration-offset: 0%; */
+  text-decoration-thickness: 0%;
+  text-decoration-skip-ink: auto;
+  color: #428000;
+}
+#vibration-ok {
+  font-family: Inter;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 150%;
+  letter-spacing: 2%;
+  vertical-align: middle;
+  color: #ff8a11;
+  display: none;
+}
+#vibrating-label {
+  font-family: Inter;
+  font-weight: 700;
+  font-style: italic;
+  font-size: 14px;
+  line-height: 150%;
+  letter-spacing: 2%;
+  vertical-align: middle;
+  color: #800a00;
+  display: none;
+}
+
+#vibration-btn {
+  height: 40px;
+  white-space: nowrap;
+}
+
+.position-rectangle {
+  position: absolute;
+  width: 80px;
+  height: 60px;
+  background-color: #ffad4c;
+  opacity: 0.3;
+  border: 2px solid #ff8c00;
+  border-radius: 3px;
+  pointer-events: none;
+  transition: all 0.1s ease;
+  z-index: -1;
+}
+
+#phocus-label {
+  font-family: Inter;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 100%;
+  letter-spacing: 2%;
+  text-decoration: underline;
+  text-decoration-style: solid;
+  /* text-decoration-offset: 0%; */
+  text-decoration-thickness: 0%;
+  text-decoration-skip-ink: auto;
+  cursor: pointer;
+}

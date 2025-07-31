@@ -1,0 +1,147 @@
+input.text-field {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  /* White */
+  background: hsl(36, 100%, 99%);
+
+  border: 1px solid #fef6ec;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding-top: 8px;
+  padding-right: 16px;
+  padding-bottom: 8px;
+  padding-left: 16px;
+}
+
+.text-field::placeholder {
+  font-size: 14px; /* Smaller than input text */
+  color: #999; /* Light gray color */
+  font-style: italic; /* Italic placeholder */
+  font-family: "Inter";
+}
+/* 
+input[type="text"][readonly] {
+  animation: none !important;
+  transition: none !important;
+  cursor: not-allowed;
+} */
+
+input[type="file"] {
+  display: none;
+}
+.path-label {
+  display: inline-block;
+  /* background-color: #fff; */
+  cursor: pointer;
+  font-style: italic; /* Italic placeholder */
+  font-family: "Inter";
+  font-size: 14px;
+  color: #999;
+  text-align: end;
+  overflow-wrap: break-all;
+  word-break: break-all;
+}
+.path-selector-div {
+  gap: 8px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.path-selector-btn {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  width: 28px;
+  height: 28px;
+  /* Hot white */
+  background: #fef6ec;
+  border-radius: 4px;
+  border: none;
+}
+
+.checkbox {
+  display: inline-flex;
+  cursor: pointer;
+  position: relative;
+}
+
+.checkbox > input {
+  height: 20px;
+  width: 20px;
+  appearance: none;
+  box-sizing: border-box;
+  border: 2px solid #800a00;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  background-color: #fffdfa;
+}
+
+.checkbox > input:checked {
+  background-color: #800a00;
+}
+
+.checkmark {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  height: 20px;
+  width: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+input[type="text"].main-field {
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 16px;
+
+  width: 400px;
+  height: auto;
+
+  /* White */
+  background: #fffdfa;
+  /* Hot white */
+  border: 1px solid #fef6ec;
+  border-radius: 4px;
+}
+:focus {
+  outline: 5px solid #fef6ec;
+}
+
+div[contenteditable="true"] {
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 16px;
+  gap: 16px;
+
+  width: 400px;
+  height: auto;
+
+  /* White */
+  background: #fffdfa;
+  /* Hot white */
+  border: 1px solid #fef6ec;
+  border-radius: 4px;
+}
+:focus {
+  outline: 5px solid #fef6ec;
+}

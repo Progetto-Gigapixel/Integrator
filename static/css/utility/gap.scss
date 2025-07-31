@@ -1,0 +1,18 @@
+@mixin generate-gap-utilities(
+  $start: 0,
+  $end: 100,
+  $step: 1,
+  $unit: px,
+  $important: true
+) {
+  @for $i from $start through $end {
+    @if $i % $step == 0 or $i == $start or $i == $end {
+      .g-#{$i} {
+        gap: #{$i}#{$unit} #{if($important, "!important", "")};
+      }
+    }
+  }
+}
+
+// Generate utilities
+@include generate-gap-utilities(); // Default: 0-100px in 1px increments

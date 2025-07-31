@@ -1,0 +1,24 @@
+#nlights-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 20px;
+  gap: 20px;
+  width: 100%;
+  height: auto;
+}
+
+#nlights-computing-results > span {
+  font-family: Inter;
+  font-weight: 400;
+  font-style: italic;
+  font-size: 14px;
+  line-height: 150%;
+  letter-spacing: 2%;
+  vertical-align: middle;
+  color: #ff8a11;
+}
+
+#nlights-position-dropdown-frame {
+  width: 100px;
+}

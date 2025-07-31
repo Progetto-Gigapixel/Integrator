@@ -1,0 +1,50 @@
+.software-btn {
+  /* Software button */
+  box-sizing: border-box;
+  /* Auto layout */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  gap: 12px;
+
+  width: 92px;
+  height: auto;
+
+  /* White */
+  background: #fffdfa;
+  border-radius: 10px;
+
+  /* Inside auto layout */
+  flex: none;
+  order: 0;
+  flex-grow: 0;
+}
+.software-icon {
+  width: 48px;
+  height: 53px;
+  gap: 10px;
+}
+.software-btn p {
+  margin: 0%;
+  width: auto;
+  height: auto;
+  /* Body bold */
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 15px;
+  /* identical to box height */
+  display: flex;
+  align-items: center;
+  letter-spacing: 0.02em;
+  /* Hot_Dark */
+  color: #170200;
+
+  /* Inside auto layout */
+  flex: none;
+  order: 1;
+  flex-grow: 0;
+}
