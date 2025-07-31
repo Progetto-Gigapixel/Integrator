@@ -1,0 +1,59 @@
+{% macro secondaryButton(value='',id='',class='', isDisabled=False) %}
+{#default,hover, clicked #}
+<script src="{{ url_for('static', filename='js/components/button.js') }}"></script>
+
+<button class="secondary-button-default {{class}}" id="{{id}}">
+    <span class=" button-label">
+        {{value}}</span>
+</button>
+{% endmacro %}
+
+{% macro mainButton(value='',id='',class='',isDisabled=False,redirect='') %}
+
+{% if redirect!='' %}
+<button class="main-button {{class}}" id="{{id}}" onclick="window.location.href='{{redirect}}'">
+    <span class="button-label">
+        {{value}}</span>
+</button>
+
+{% else %}
+<button class="main-button {{class}}" id="{{id}}">
+    <span class="button-label">
+        {{value}}</span>
+</button>
+{% endif %}
+{% endmacro %}
+
+{% macro playButton(value='',id='',class='', type='play') %}
+<button class="play-button {{class}}" id="{{id}}">
+
+    <svg class="play-icon {% if type!='play' %}hide {% endif %}" width="40" height="40" viewBox="0 0 40 40" fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+        <rect width="40" height="40" rx="4" fill="#FEF6EC" />
+        <path
+            d="M13.125 14.1845V25.8155C13.125 26.5745 13.9375 27.0568 14.6039 26.6934L25.2655 20.8779C25.9604 20.4989 25.9604 19.5011 25.2655 19.1221L14.6039 13.3066C13.9375 12.9432 13.125 13.4255 13.125 14.1845Z"
+            fill="#170200" />
+    </svg>
+
+
+    <svg class="pause-icon {% if type!='pause' %}hide {% endif %}" width="14" height="16" viewBox="0 0 14 16"
+        fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+            d="M10 15.5C9.72386 15.5 9.5 15.2761 9.5 15V1C9.5 0.723858 9.72386 0.5 10 0.5H13.375C13.6511 0.5 13.875 0.723858 13.875 1V15C13.875 15.2761 13.6511 15.5 13.375 15.5H10ZM0.625 15.5C0.348858 15.5 0.125 15.2761 0.125 15V1C0.125 0.723858 0.348858 0.5 0.625 0.5H4C4.27614 0.5 4.5 0.723858 4.5 1V15C4.5 15.2761 4.27614 15.5 4 15.5H0.625Z"
+            fill="#170200" />
+    </svg>
+
+
+    <svg class="stop-icon {% if type!='stop' %}hide {% endif %}" width="14" height="16" viewBox="0 0 14 16" fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+        <rect x="0.125" y="0.5" width="13.75" height="15" rx="1" fill="#170200" />
+    </svg>
+
+
+    <svg class="arrow-icon {% if type!='' %}hide {% endif %}" width="14" height="8" viewBox="0 0 14 8" fill="none"
+        xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 1L7 7L13 1" stroke="#170200" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+
+</button>
+{% endmacro %}

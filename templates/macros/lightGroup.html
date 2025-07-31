@@ -1,0 +1,29 @@
+{% macro lightGroup(type='3D',switch="on") %}
+<div class="light-group-frame">
+    <div class="light-group-inner-frame">
+        <div class="light-btn-14" id="on14-button"><span>1-4 {{switch}}</span></div>
+        <div class="light-group-vertical">
+            {% if type=='3D' %}
+            <div class="light-btn vertical off" data-value="5"><span>5</span></div>
+            {% endif %}
+            <div class="light-btn vertical {{switch}}" data-value="1"><span>1</span></div>
+            <div class="light-center-btn" data-value="off"><span>off</span></div>
+            <div class="light-btn vertical {{switch}}" data-value="3"><span>3</span></div>
+            {% if type=='3D' %}
+            <div class="light-btn vertical off" data-value="7"><span>7</span></div>
+            {% endif %}
+        </div>
+        <div class="light-group-horizontal">
+            {% if type=='3D' %}
+            <div class="light-btn off" data-value="8"><span>8</span></div>
+            {% endif %}
+            <div class="light-btn {{switch}}" data-value="4"><span>4</span></div>
+            <div class="light-center-btn" id="off-button" data-value="off"><span>off</span></div>
+            <div class="light-btn {{switch}}" data-value="2"><span>2</span></div>
+            {% if type=='3D' %}
+            <div class="light-btn off" data-value="6"><span>6</span></div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}

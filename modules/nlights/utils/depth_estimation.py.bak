@@ -1,0 +1,588 @@
+"""
+Module for estimating depth from normal maps and gradients.
+Equivalent to DepthFromGradient.m in MATLAB.
+"""
+
+import numpy as np
+import scipy
+from scipy.fftpack import dct, idct
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+import cv2
+import numpy as np
+from scipy.ndimage import gaussian_filter
+
+
+def depth_from_gradient_old(p, q, options=None):
+    """
+    Estimate a depth map from the given gradient field (p, q), such that
+    dZ/dx = p, dZ/dy = q.
+    
+    Parameters
+    ----------
+    p : ndarray
+        x-component of gradient (dZ/dx)
+    q : ndarray
+        y-component of gradient (dZ/dy)
+    options : dict, optional
+        Dictionary with options:
+        - periodic: boolean indicating whether the output Z should be periodic
+    
+    Returns
+    -------
+    ndarray
+        Estimated depth map
+    """
+    if options is None:
+        options = {}
+    
+    # Parse options
+    periodic = options.get('periodic', False)
+    
+    # Check input size
+    assert p.shape == q.shape, "p and q must have the same size"
+    assert len(p.shape) == 2, "p and q must be 2D arrays"
+    
+    M, N = p.shape
+    
+    # Perform copy-flip for non-periodic depth
+    if not periodic:
+        # Estendi e rifletti `p` per gestire la profondità non periodica
+        p = np.block([
+            [p, -p[:, ::-1]],
+            [p[::-1, :], -p[::-1, ::-1]]
+        ])
+    
+        # Estendi e rifletti `q` per gestire la profondità non periodica
+        q = np.block([
+            [q, q[:, ::-1]],
+            [-q[::-1, :], -q[::-1, ::-1]]
+        ])
+    
+        # Aggiorna le dimensioni di `M` e `N`
+        M *= 2
+        N *= 2
+    
+    # Frequency indices
+    half_M = (M - 1) / 2
+    half_N = (N - 1) / 2
+    
+    u = np.fft.fftshift(np.arange(-np.ceil(half_N), np.floor(half_N) + 1))
+    v = np.fft.fftshift(np.arange(-np.ceil(half_M), np.floor(half_M) + 1))
+    
+    u, v = np.meshgrid(u, v)
+    
+    # Shift back to match MATLAB's ifftshift
+    u = np.fft.ifftshift(u)
+    v = np.fft.ifftshift(v)
+    
+    # Compute the Fourier transform of p and q
+    Fp = np.fft.fft2(p)
+    Fq = np.fft.fft2(q)
+    
+    # Compute the Fourier transform of Z
+    denominator = (u / N) ** 2 + (v / M) ** 2
+    # Avoid division by zero
+    denominator[0, 0] = 1.0
+
+    #print(p)
+    #print(q)
+    #print(Fp)
+    #print(Fq)
+    #print(denominator)
+    #print(N)
+    #print(M)
+    
+    
+    epsilon = 1e-8
+    Fz = -1j / (2 * np.pi) * (u * Fp / N + v * Fq / M) / (denominator + epsilon)
+    #Fz = -1j / (2 * np.pi) * (u * Fp / N + v * Fq / M) / denominator
+    
+    # Set DC component to 0 (mean of Z is arbitrary)
+    Fz[0, 0] = 0
+
+    #print(Fz)
+    
+    # Recover depth Z
+    Z = np.real(np.fft.ifft2(Fz))
+    
+    # Recover the non-periodic depth
+    if not periodic:
+        Z = Z[:M//2, :N//2]
+    
+    return Z
+
+
+
+def depth_from_gradient_t2(p, q, options=None):
+    """
+    Estimate a depth map from the given gradient field (p, q), such that
+    dZ/dx = p, dZ/dy = q.
+    
+    Parameters
+    ----------
+    p : ndarray
+        x-component of gradient (dZ/dx)
+    q : ndarray
+        y-component of gradient (dZ/dy)
+    options : dict, optional
+        Dictionary with options:
+        - periodic: boolean indicating whether the output Z should be periodic
+    
+    Returns
+    -------
+    ndarray
+        Estimated depth map
+    """
+    if options is None:
+        options = {}
+
+    # Parse options
+    periodic = options.get('periodic', False)
+
+    # Verifica le dimensioni degli input
+    assert p.shape == q.shape, "p and q must have the same shape"
+    M, N = p.shape
+
+    # Esegui il copy-flip se non periodico
+    
+    if not periodic:
+        p = np.block([
+            [p, -np.fliplr(p)],
+            [np.flipud(p), -np.flipud(np.fliplr(p))]
+        ])
+        q = np.block([
+            [q, np.fliplr(q)],
+            [-np.flipud(q), -np.flipud(np.fliplr(q))]
+        ])
+        M *= 2
+        N *= 2
+
+    # Indici di frequenza
+    halfM = (M - 1) / 2
+    halfN = (N - 1) / 2
+    u, v = np.meshgrid(
+        np.arange(-np.ceil(halfN), np.floor(halfN) + 1),
+        np.arange(-np.ceil(halfM), np.floor(halfM) + 1)
+    )
+    u = np.fft.ifftshift(u)
+    v = np.fft.ifftshift(v)
+
+
+    #Fourier di p e q
+    #Fp = np.fft.fft2(p)
+    #Fq = np.fft.fft2(q)
+    Fp = np.fft(p)
+    Fq = np.fft(q)
+
+    # Fourier della profondità Z
+    denom = (u / N) ** 2 + (v / M) ** 2
+    #print(denom)
+    # Evita / 0
+    denom[denom == 0] = 1  # will zero out DC later
+    Fz = -1j / (2 * np.pi) * (u * Fp / N + v * Fq / M) / denom
+
+    #epsilon = 1e-8
+    #Fz = -1j / (2 * np.pi) * (u * Fp / N + v * Fq / M) / (denom + epsilon)
+    #print(Fz)
+    # Componente DC
+    Fz[0, 0] = 0
+
+    #print(Fz)
+    #Z = np.real(np.fft.ifft2(Fz))
+    Z = np.real(np.fft2(Fz))
+
+    
+    # Sega la profondità se non periodico
+    if not periodic:
+        Z = Z[:M // 2, :N // 2]
+
+    
+    return Z
+
+
+
+
+
+def depth_from_normals___(normals, mask=None, options=None):
+    """
+    Estimate depth from surface normal vectors.
+    
+    Parameters
+    ----------
+    normals : ndarray
+        Normal map (height, width, 3)
+    mask : ndarray, optional
+        Binary mask indicating valid pixels
+    options : dict, optional
+        Dictionary with options for depth_from_gradient
+    
+    Returns
+    -------
+    ndarray
+        Estimated depth map
+    """
+    if options is None:
+        options = {}
+        
+    # Extract height and width
+    height, width = normals.shape[:2]
+    
+    # Extract gradient information from normals
+    # p = dz/dx, q = dz/dy
+    p = -normals[:, :, 0] / np.maximum(normals[:, :, 2], 1e-10)
+    q = -normals[:, :, 1] / np.maximum(normals[:, :, 2], 1e-10)
+    
+    # Apply mask if provided
+    if mask is not None:
+        p = p * mask
+        q = q * mask
+    
+    # Handle NaN and Inf values
+    p = np.nan_to_num(p, nan=0.0, posinf=0.0, neginf=0.0)
+    q = np.nan_to_num(q, nan=0.0, posinf=0.0, neginf=0.0)
+    
+    # Compute depth using depth_from_gradient
+    Z = depth_from_gradient(p, q, options)
+    
+    # Apply mask to result if provided
+    if mask is not None:
+        Z = Z * mask
+    
+    return Z
+
+
+
+
+def depth_from_normals(normals):
+    # Ricava i gradienti p = dZ/dx e q = dZ/dy dalle normali
+    # normals = scipy.ndimage.gaussian_filter(normals, sigma=1.0)
+    # Set depth to 0 for invalid normal vectors
+    mask = np.logical_or.reduce((np.isnan(normals[:, :, 0]),
+                                 np.isnan(normals[:, :, 1]),
+                                 np.isnan(normals[:, :, 2])))
+
+    nx, ny, nz = normals[..., 0], normals[..., 1], normals[..., 2]
+    epsilon = 1e-6
+    p = -nx / (nz + epsilon)
+    q = -ny / (nz + epsilon)
+    Z = depth_from_gradient(p, q)
+    Z[mask] = 0
+    return Z
+
+def depth_from_gradient(p, q):
+    M, N = p.shape
+    u, v = np.meshgrid(np.fft.fftfreq(N), np.fft.fftfreq(M))
+    u = np.fft.fftshift(u)
+    v = np.fft.fftshift(v)
+
+    Fp = np.fft.fft2(p)
+    Fq = np.fft.fft2(q)
+
+    denom = (u**2 + v**2)
+    denom[denom == 0] = 1e-6
+
+    Fz = -1j * (u * Fp + v * Fq) / (2 * np.pi * denom)
+    Fz[0, 0] = 0  # azzera la componente DC
+    Z = np.real(np.fft.ifft2(Fz))
+
+    # Level Z to the lowest value
+    offset = np.min(Z)
+    Z = Z - offset
+
+    return Z
+
+
+
+def dct2(x):
+    return dct(dct(x.T, norm='ortho').T, norm='ortho')
+
+def idct2(x):
+    return idct(idct(x.T, norm='ortho').T, norm='ortho')
+
+def depth_from_normal_dct(normals, periodic=False):
+    nx, ny, nz = normals[..., 0], normals[..., 1], normals[..., 2]
+    epsilon = 1e-6
+    p = -nx / (nz + epsilon)
+    q = -ny / (nz + epsilon)
+    Z = depth_from_gradient_dct(p, q, periodic=False)
+    return Z
+
+def depth_from_gradient_dct(p, q, periodic=False):
+    assert p.shape == q.shape
+    M, N = p.shape
+
+    if not periodic:
+        # Estensione simmetrica
+        p = np.block([
+            [p, -p[:, ::-1]],
+            [p[::-1, :], -p[::-1, ::-1]]
+        ])
+        q = np.block([
+            [q, q[:, ::-1]],
+            [-q[::-1, :], -q[::-1, ::-1]]
+        ])
+        M *= 2
+        N *= 2
+
+    # Divergenza del campo di gradiente
+    dx = np.zeros_like(p)
+    dy = np.zeros_like(q)
+
+    dx[:, :-1] = p[:, :-1]
+    dx[:, -1] = 0  # bordo destro
+    dy[:-1, :] = q[:-1, :]
+    dy[-1, :] = 0  # bordo inferiore
+
+    f = dx - np.roll(dx, 1, axis=1) + dy - np.roll(dy, 1, axis=0)
+
+    # DCT del termine sorgente
+    f_dct = dct2(f)
+
+    # Costruzione degli autovalori del Laplaciano discreto
+    pi = np.pi
+    xx, yy = np.meshgrid(np.arange(N), np.arange(M))
+    denom = (2 * np.cos(pi * xx / N) - 2) + (2 * np.cos(pi * yy / M) - 2)
+    denom[0, 0] = 1  # evitare divisione per zero al DC
+    Z_dct = f_dct / denom
+    Z_dct[0, 0] = 0  # forzare media zero
+
+    Z = idct2(Z_dct)
+
+    if not periodic:
+        Z = Z[:M//2, :N//2]
+
+    # Level Z to the lowest value
+    offset = np.min(Z)
+    Z = Z - offset
+
+    return Z
+
+
+
+def remove_bow_effect(normals, sigma=30, target_mean=np.array([0, 0, 1]), normalize=False):
+    """
+    Rimuove l'effetto "bombatura" dai bordi della normale stimata.
+
+    Parameters:
+        normals: HxWx3 array, con normali tra -1 e 1
+        sigma: raggio del filtro gaussiano (maggiore = più aggressivo)
+        target_mean: direzione media desiderata (tipicamente [0,0,1])
+
+    Returns:
+        Normali corrette, shape (H, W, 3)
+    """
+    # Rimuove componente a bassa frequenza
+    low_freq = gaussian_filter(normals, sigma=(sigma, sigma, 0))
+    high_freq = normals - low_freq
+
+    # Riallineamento verso [0, 0, 1]
+    corrected = high_freq + target_mean
+
+    # Rinormalizza
+    if normalize:
+        norm = np.linalg.norm(corrected, axis=2, keepdims=True)
+        corrected = corrected / (norm + 1e-8)
+
+    return corrected
+
+
+
+
+def remove_parabolic_trend(Z):
+    h, w = Z.shape
+    X, Y = np.meshgrid(np.arange(w), np.arange(h))
+    X_flat = X.flatten()
+    Y_flat = Y.flatten()
+    Z_flat = Z.flatten()
+
+    # Fit suxficie polinomiale grado 3
+    poly = PolynomialFeatures(degree=3)
+    XY = np.stack([X_flat, Y_flat], axis=1)
+    XY_poly = poly.fit_transform(XY)
+
+    model = LinearRegression()
+    model.fit(XY_poly, Z_flat)
+    Z_fit = model.predict(XY_poly).reshape(h, w)
+
+    # Sottraggo la componente parabolica
+    Z_corrected = Z - Z_fit
+
+    #Normalizza
+    #Z_corrected = (Z_corrected - np.min(Z_corrected)) / (np.max(Z_corrected) - np.min(Z_corrected))  # da 0 a 1
+    return Z_corrected
+
+
+def recenter_normals(n):
+    mean_normal = np.mean(n.reshape(-1, 3), axis=0)
+    correction = np.array([0.0, 0.0, 1.0]) - mean_normal
+    n = n + correction.reshape(1, 1, 3)
+    norm = np.linalg.norm(n, axis=2, keepdims=True)
+    return n / (norm + 1e-8)
+
+
+def normals_from_depth(Z):
+    # # Calcolo delle derivate parziali
+    # dzdy, dzdx = np.gradient(Z)
+    #
+    # # Costruzione del vettore normale: [-dz/dx, -dz/dy, 1]
+    # n = np.stack([-dzdx, -dzdy, np.ones_like(Z)], axis=-1)
+    #
+    # # Normalizzazione
+    # norm = np.linalg.norm(n, axis=2, keepdims=True)
+    # n_normalized = n / (norm + 1e-8)  # X evitare div 0
+    Z = scipy.ndimage.gaussian_filter(Z, sigma=1.0)
+    dzdx = cv2.Scharr(Z, cv2.CV_64F, 1, 0)
+    dzdy = cv2.Scharr(Z, cv2.CV_64F, 0, 1)
+    normals = np.dstack((-dzdx, -dzdy, np.ones_like(Z)))
+    normals /= np.linalg.norm(normals, axis=2, keepdims=True)
+
+    return normals
+
+
+
+def match_normal_distribution(n_in, n_out):
+    """
+    Adatta la distribuzione di n_out (normali ricostruite)
+    a quella di n_ref (normali originali), mantenendo la direzione.
+    """
+    n_out_corr = np.copy(n_out)
+
+    for c in range(3):  # x, y, z
+        mean_in = np.mean(n_in[..., c])
+        std_in = np.std(n_in[..., c])
+        mean_out = np.mean(n_out[..., c])
+        std_out = np.std(n_out[..., c]) + 1e-8
+
+        # riproporziona canale
+        n_out_corr[..., c] = (n_out[..., c] - mean_out) * (std_in / std_out) + mean_in
+
+    # Rinomralizzazione per u
+    norm = np.linalg.norm(n_out_corr, axis=2, keepdims=True)
+    n_out_corr = n_out_corr / (norm + 1e-8)
+
+    return n_out_corr
+
+
+
+
+# def poisson_solver(fx, fy):
+#     """
+#     Ricostruisce una superficie Z data la derivata fx = dZ/dx e fy = dZ/dy
+#     utilizzando il Poisson Solver via DCT.
+#     """
+#     h, w = fx.shape
+#     # Calcola la divergenza del gradiente (laplaciano approssimato)
+#     fxx = np.zeros_like(fx)
+#     fyy = np.zeros_like(fy)
+#     fxx[:, :-1] = fx[:, :-1] - fx[:, 1:]
+#     fyy[:-1, :] = fy[:-1, :] - fy[1:, :]
+#     f = fxx + fyy
+#
+#     # Applica DCT (Discrete Cosine Transform)
+#     dct_f = dct(dct(f.T, norm='ortho').T, norm='ortho')
+#
+#     # Denominatore per il Poisson in frequenza
+#     xx, yy = np.meshgrid(np.arange(w), np.arange(h))
+#     denom = (2 * np.cos(np.pi * xx / w) - 2) + (2 * np.cos(np.pi * yy / h) - 2)
+#     denom[0, 0] = 1  # evita divisione per 0 (DC component)
+#     Z = dct_f / denom
+#     Z[0, 0] = 0  # fissiamo la media a zero
+#
+#     # Inversa DCT per ottenere la mappa Z
+#     Z = idct(idct(Z.T, norm='ortho').T, norm='ortho')
+#     return Z
+#
+# def depth_from_normals(normals):
+#     """
+#     Normali devono essere normalizzate, shape: (H, W, 3), valori tra -1 e 1
+#     """
+#     nz = normals[:, :, 2]
+#     nz[nz == 0] = 1e-5  # evita divisioni per zero
+#
+#     p = -normals[:, :, 0] / nz  # ∂Z/∂x
+#     q = -normals[:, :, 1] / nz  # ∂Z/∂y
+#
+#     Z = poisson_solver(p, q)
+#     return Z
+#
+# def normals_from_depth(Z):
+#     dzdy, dzdx = np.gradient(Z)
+#     n = np.stack([-dzdx, -dzdy, np.ones_like(Z)], axis=-1)
+#     #n /= np.linalg.norm(n, axis=2, keepdims=True)
+#     norm = np.linalg.norm(n, axis=2, keepdims=True)
+#     n_normalized = n / (norm + 1e-8)
+#     return n_normalized
+
+
+
+# def depth_from_normals(normals, periodic=False):
+#     """
+#     Calcola la mappa di profondità da una mappa di normali.
+#
+#     Parameters:
+#         normals: numpy array (H, W, 3), normal map in coordinate (nx, ny, nz)
+#         periodic: bool, se True assume condizioni periodiche al bordo
+#
+#     Returns:
+#         Z: numpy array (H, W), mappa di profondità stimata
+#     """
+#     # Estrai le componenti
+#     nx = normals[:, :, 0]
+#     ny = normals[:, :, 1]
+#     nz = normals[:, :, 2]
+#
+#     # Evita divisione per zero
+#     nz[nz == 0] = 1e-5
+#
+#     # Calcola i gradienti p = dZ/dx e q = dZ/dy
+#     p = -nx / nz
+#     q = -ny / nz
+#
+#     # Applica la funzione di integrazione
+#     Z = integrate_gradients(p, q, periodic)
+#     return Z
+#
+#
+# def integrate_gradients(p, q, periodic=False):
+#     """
+#     Integrazione FFT di un campo di gradienti (p, q) in una mappa Z.
+#     """
+#     M, N = p.shape
+#
+#     if not periodic:
+#         # Crea la versione "mirrorata" per bordi non periodici
+#         p = np.block([
+#             [p, -p[:, ::-1]],
+#             [p[::-1, :], -p[::-1, ::-1]]
+#         ])
+#         q = np.block([
+#             [q, q[:, ::-1]],
+#             [-q[::-1, :], -q[::-1, ::-1]]
+#         ])
+#         M, N = p.shape
+#
+#     # Frequenze
+#     halfM = (M - 1) / 2
+#     halfN = (N - 1) / 2
+#     u, v = np.meshgrid(np.arange(-np.ceil(halfN), np.floor(halfN) + 1),
+#                        np.arange(-np.ceil(halfM), np.floor(halfM) + 1))
+#     u = np.fft.ifftshift(u)
+#     v = np.fft.ifftshift(v)
+#
+#     # Trasformata di Fourier
+#     Fp = np.fft.fft2(p)
+#     Fq = np.fft.fft2(q)
+#
+#     denom = (u / N) ** 2 + (v / M) ** 2
+#     denom[denom == 0] = 1e-5  # evitare divisione per zero
+#
+#     Fz = -1j / (2 * np.pi) * (u * Fp / N + v * Fq / M) / denom
+#     Fz[0, 0] = 0  # componente DC
+#
+#     Z = np.real(np.fft.ifft2(Fz))
+#
+#     if not periodic:
+#         Z = Z[:M // 2, :N // 2]
+#
+#     return Z

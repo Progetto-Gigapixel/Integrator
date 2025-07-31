@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+
+{% block top_bar %}
+{{ super() }}
+{% endblock %}
+{% block home_menu %}
+
+{{homeMenu(library=True, project=True, save=True)}}
+{{sliding_panel(stand_type=session['stand_type'],output_type=session['output_type'])}}
+{% endblock %}
+{% block toolbar %}
+{{toolbar(current='modelviewer',capturer=True,shaft=True,nlights=True,imagematcher=True,modelviewer=True)}}
+{% endblock %}
+{% block content %}
+
+<div id="flask-session-data" data-nshotx="{{ session.get('nshotx') | tojson | safe }}"
+    data-nshoty="{{ session.get('nshoty') | tojson | safe }}" data-stepx="{{ session.get('stepx') | tojson | safe }}"
+    data-stepy="{{ session.get('stepy') | tojson | safe }}">
+</div>
+
+<script type="module" src="{{ url_for('static', filename='js/modelviewer.js') }}"></script>
+
+<div id="modelviewer-content">
+    {{titleLabel('Modelviewer') }}
+    <div class="l-c wf g-10">
+        <div class="l-r g-24">
+            <div class="l-c wf" id="modelviewer-art-piece-frame">
+                <span class="label-bold">Art piece</span>
+                <div class="l-c wf g-10">
+                    <img title="Thumbnail" src="{{ url_for('static', filename='/thumbnails/test.jpg') }}"
+                        class="card-thumbnail" />
+                </div>
+            </div>
+            <div class="l-c g-8">
+                <div class="l-r g-8">
+                    <span class="label-bold">Infos
+                    </span>
+                    <div class="small-icon" id="icon-lock-open">
+                        <svg width="17" height="19" viewBox="0 0 17 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M11.2272 3.4136C11.2272 2.97961 11.4188 2.56339 11.7597 2.25651C12.1007 1.94963 12.5632 1.77723 13.0454 1.77723C13.5276 1.77723 13.9901 1.94963 14.331 2.25651C14.672 2.56339 14.8636 2.97961 14.8636 3.4136C14.8636 3.63059 14.9593 3.8387 15.1298 3.99214C15.3003 4.14558 15.5316 4.23178 15.7727 4.23178C16.0138 4.23178 16.245 4.14558 16.4155 3.99214C16.586 3.8387 16.6818 3.63059 16.6818 3.4136C16.6818 2.54562 16.2986 1.71318 15.6167 1.09943C14.9347 0.485673 14.0098 0.140869 13.0454 0.140869C12.081 0.140869 11.156 0.485673 10.4741 1.09943C9.79214 1.71318 9.40902 2.54562 9.40902 3.4136V6.68632H3.04539C2.32207 6.68632 1.62838 6.94493 1.11692 7.40524C0.605452 7.86556 0.318115 8.48988 0.318115 9.14087V15.6863C0.318115 16.3373 0.605452 16.9616 1.11692 17.4219C1.62838 17.8823 2.32207 18.1409 3.04539 18.1409H12.1363C12.8596 18.1409 13.5533 17.8823 14.0648 17.4219C14.5762 16.9616 14.8636 16.3373 14.8636 15.6863V9.14087C14.8636 8.48988 14.5762 7.86556 14.0648 7.40524C13.5533 6.94493 12.8596 6.68632 12.1363 6.68632H11.2272V3.4136ZM3.04539 8.32269H12.1363C12.3774 8.32269 12.6086 8.40889 12.7791 8.56233C12.9496 8.71577 13.0454 8.92387 13.0454 9.14087V15.6863C13.0454 15.9033 12.9496 16.1114 12.7791 16.2649C12.6086 16.4183 12.3774 16.5045 12.1363 16.5045H3.04539C2.80428 16.5045 2.57305 16.4183 2.40256 16.2649C2.23208 16.1114 2.1363 15.9033 2.1363 15.6863V9.14087C2.1363 8.92387 2.23208 8.71577 2.40256 8.56233C2.57305 8.40889 2.80428 8.32269 3.04539 8.32269Z"
+                                fill="#170200" />
+                            <circle cx="7.68177" cy="12.4137" r="1.63636" fill="#170200" />
+                        </svg>
+                    </div>
+                    <div class="small-icon" id="icon-lock-close">
+                        <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <ellipse cx="8.00013" cy="12.4137" rx="1.63636" ry="1.63636" fill="#170200" />
+                            <path
+                                d="M12.6024 6.44087V4.64087C12.6024 3.44739 12.1175 2.3028 11.2544 1.45889C10.3913 0.614975 9.22071 0.140869 8.00011 0.140869C6.77951 0.140869 5.60891 0.614975 4.74581 1.45889C3.88272 2.3028 3.39784 3.44739 3.39784 4.64087V6.44087C2.66548 6.44087 1.96312 6.72533 1.44526 7.23168C0.927403 7.73803 0.636475 8.42478 0.636475 9.14087V15.4409C0.636475 16.157 0.927403 16.8437 1.44526 17.3501C1.96312 17.8564 2.66548 18.1409 3.39784 18.1409H12.6024C13.3347 18.1409 14.0371 17.8564 14.555 17.3501C15.0728 16.8437 15.3637 16.157 15.3637 15.4409V9.14087C15.3637 8.42478 15.0728 7.73803 14.555 7.23168C14.0371 6.72533 13.3347 6.44087 12.6024 6.44087ZM5.23875 4.64087C5.23875 3.92478 5.52968 3.23803 6.04753 2.73168C6.56539 2.22533 7.26775 1.94087 8.00011 1.94087C8.73247 1.94087 9.43483 2.22533 9.95269 2.73168C10.4705 3.23803 10.7615 3.92478 10.7615 4.64087V6.44087H5.23875V4.64087ZM13.5228 15.4409C13.5228 15.6796 13.4259 15.9085 13.2532 16.0773C13.0806 16.246 12.8465 16.3409 12.6024 16.3409H3.39784C3.15372 16.3409 2.9196 16.246 2.74698 16.0773C2.57436 15.9085 2.47738 15.6796 2.47738 15.4409V9.14087C2.47738 8.90217 2.57436 8.67326 2.74698 8.50447C2.9196 8.33569 3.15372 8.24087 3.39784 8.24087H12.6024C12.8465 8.24087 13.0806 8.33569 13.2532 8.50447C13.4259 8.67326 13.5228 8.90217 13.5228 9.14087V15.4409Z"
+                                fill="#170200" />
+                        </svg>
+                    </div>
+                </div>
+                <div id="modelviewer-info-frame" class="l-c g-8">
+                    <div class="l-c g-8">
+                        <span class="label">Name</span>
+                        {{textField(id="modelviewer-name", value=session['title'], name="title")}}
+                    </div>
+                    <div class="l-c g-8">
+                        <span class="label">Author</span>
+                        {{textField(id="modelviewer-author",value=session['artist'],name="artist")}}
+                    </div>
+                    <div class="l-r g-16">
+                        <div class="l-c g-8">
+                            <span class="label">Lenght (mm)</span>
+                            {{textField(id="modelviewer-lenght", value=session['height'], name="height")}}
+                        </div>
+                        <div class="l-c g-8">
+                            <span class="label">width (mm)</span>
+                            {{textField(id="modelviewer-width", value=session['width'], name="width")}}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+    <div class="l-r wf jsb">
+        <div class="l-c g-16">
+            <div id="modelviewer-template-zip-frame">{{basic_dropdown(modelviewerShotOpts,
+                optLabel=modelviewerShotLabel,
+                name="modelviewer_template_zip",id="modelviewer-template-zip")}}</div>
+            <div class="l-r wf g-12">
+                <span class="label-bold">Template directory </span>
+                {{pathField(id="modelviewer-template-dir-path", value=session['modelviewer_template_dir_path'])}}
+            </div>
+            <div class="l-r wf g-12">
+                <span class="label-bold">Artwork directory </span>
+                {{pathField(id="modelviewer-artwork-dir-path", value=session['modelviewer_artwork_dir_path'])}}
+            </div>
+            <div class="l-r wf g-12">
+                <span class="label-bold">Saved in </span>
+                {{pathField(id="modelviewer-output-path", value=session['modelviewer_output_path'])}}
+            </div>
+            <div id="modelviewer-templating-bar-frame" class="wf l-r jc-sb g-12">
+                {{progressBar(id="modelviewer-templating")}}
+            </div>
+            <div id="modelviewer-templating-results">
+                <span class="body-bold">Your template is ready. You can now open it with the <span
+                        id="unity-label">Unity
+                        Hub.</span></span>
+
+            </div>
+            {{mainButton(id="save-modelviewer",value="Create template for Unity",class="main-button")}}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

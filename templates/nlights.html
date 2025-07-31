@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+
+{% block top_bar %}
+{{ super() }}
+{% endblock %}
+{% block home_menu %}
+
+{{homeMenu(library=True, project=True, save=True)}}
+{{sliding_panel(stand_type=session['stand_type'],output_type=session['output_type'])}}
+{% endblock %}
+
+{% block toolbar %}
+{{toolbar(current='nlights',capturer=True,shaft=True,nlights=True,imagematcher=True,modelviewer=True)}}
+{% endblock %}
+{% block content %}
+
+<div id="flask-session-data" data-directionImages="{{ session.get('nlights_direction_images_dir') }}">
+</div>
+
+<script type="module" src="{{ url_for('static', filename='js/nlights.js') }}"></script>
+<div id="nlights-content" class="l-c g-20 p-20 wf">
+    {{titleLabel('nLights') }}
+    <div id="nlights-picture-upload-frame" class="l-c g-16 wf">
+        <span class="label-bold">Picture upload for mapping</span>
+        <div id="nlights-14lights-frame" class="l-c g-3 wf">
+            <div id="nlights-14lights-inner" class="l-r g-28 ai-c">
+                <span class="body">Image lights 1-4 On</span>
+                {{pathField(id="nlights-all-lights-image-dir", value=session['nlights_all_lights_image_dir'])}}
+            </div>
+            <!-- <span class="label-light">Document/folder/subfolder</span> -->
+        </div>
+        <div id="nlights-singlelights-frame" class="l-c g-4 wf">
+            <div id="nlights-singlelights-inner" class="l-r g-33 ai-c">
+                <span class="body">Images single light</span>
+                {{pathField(id="nlights-direction-images-dir")}}
+            </div>
+            <div id="nlights-singlelights-list-inner" class="l-c g-4">
+            </div>
+        </div>
+    </div>
+    <div id="nlights-output-frame" class="l-r g-49 ai-c">
+        <span class="label-bold">Output folder</span>
+        {{pathField(id="nlights-output-directory",value=session['nlights_output_directory'])}}
+    </div>
+    <div id="nlights-position-dropdown-frame">
+        {{basic_dropdown(nlightsGridFolderOptions, id="nlights-position-dropdown",optLabel=gridLabel,
+        name="nlights_grid_folder")}}
+    </div>
+    {{mainButton(id="compute-nlights",value="Compute All maps",class="main-button")}}
+    <div id="nlights-computing" class="g-24 l-r">
+        {{secondaryButton(id="developing-shaft-btn",value="Developing...",class="secondary-button-default")}}
+        <div id="nlights-computing-pause-btn" class="p-10 g-10 l-r ai-c">
+            <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M9.5 15.5V0.5H13.875V15.5H9.5ZM0.125 15.5V0.5H4.5V15.5H0.125Z" fill="#170200" />
+            </svg>
+        </div>
+    </div>
+    <div id="nlights-computing-results" class="g-24 l-r">
+        <span>Developed.</span>
+        {{mainButton(id="compute-nlights-next",value="Next",class="main-button",redirect="/nlights/next")}}
+    </div>
+    <div id="nlights-computing-bar-frame" class="wf l-r jc-sb g-12">
+        {{progressBar(id="nlights-computation")}}
+    </div>
+</div>
+{% endblock %}

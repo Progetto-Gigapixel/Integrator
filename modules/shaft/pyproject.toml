@@ -1,0 +1,48 @@
+[tool.black]
+# Set the maximum line length to 88 characters (same as Black's default)
+line-length = 88
+
+# Exclude specific directories from formatting
+exclude = '''
+/(
+    venv|
+    venvwin|
+    build|
+    dist|
+    migrations|
+    node_modules
+)/
+'''
+
+[tool.isort]
+# Use the 'black' profile to ensure compatibility with the Black code formatter
+profile = "black"
+
+# Set the maximum line length to 88 characters (same as Black's default)
+line_length = 88
+
+# Use grid-style formatting for multiline imports
+multi_line_output = 3
+
+# Include a trailing comma at the end of multiline imports for easier future modifications
+include_trailing_comma = true
+
+# Avoid wrapping imports into multiple lines unless absolutely necessary
+force_grid_wrap = 0
+
+# Use parentheses to wrap multiline imports instead of using backslashes
+use_parentheses = true
+
+# Define the order of import sections:
+# 1. FUTURE: future imports (from __future__ import ...)
+# 2. STDLIB: standard Python libraries
+# 3. THIRDPARTY: third-party libraries installed via pip
+# 4. FIRSTPARTY: project-specific libraries
+# 5. LOCALFOLDER: local modules
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+
+# Specify the project module(s) to be grouped under FIRSTPARTY imports
+known_first_party = ["core"]
+
+# Skip sorting for specific directories or files (e.g., virtual environments or custom scripts)
+skip = ["venv", "venvwin", "build", "dist"]

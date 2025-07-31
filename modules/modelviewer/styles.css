@@ -1,0 +1,110 @@
+* {
+  font-family: "Inter", sans-serif;
+  font-size: medium;
+}
+
+h2 {
+  font-size: larger;
+}
+
+.submit-btn {
+  cursor: pointer;
+  border-radius: 10px;
+  border: none;
+  padding: 15px;
+  background: #800a00;
+  color: white;
+  display: block;
+  margin-top: -5%;
+  margin-left: 80%;
+}
+
+.submit-btn:hover {
+  background: #640800;
+}
+
+.btn {
+  cursor: pointer;
+  border-radius: 10px;
+  border: none;
+  padding: 10px;
+  background: #efefef;
+}
+
+.btn:hover {
+  background: #bebebe;
+}
+
+.container {
+  padding-left: 20vw;
+  padding-right: 20vw;
+}
+
+.art-img {
+  border-radius: 10px;
+  width: 30vw;
+  margin-bottom: 1vh;
+}
+
+.art-div {
+  width: 30vw;
+}
+
+.lock {
+  margin-top: auto;
+  margin-bottom: auto;
+  height: 2em;
+  cursor: pointer;
+}
+
+.form-group {
+  margin-bottom: 1.5vh;
+}
+
+.form-group input {
+  border-radius: 10px;
+  background: #efefef;
+  padding: 2%;
+  width: 100%;
+}
+
+.input-border {
+  outline: 1px solid black;
+  width: fit-content;
+  padding: 0.5%;
+  border-radius: 10px;
+}
+
+.row-fields {
+  display: flex;
+  gap: 1vw;
+}
+
+.row-fields input {
+  border-radius: 10px;
+  background: #efefef;
+  border: none;
+  flex: 1;
+}
+
+.painting-size-row input {
+  padding-left: 4%;
+  padding-top: 4%;
+  padding-bottom: 4%;
+}
+
+.margin-5 div {
+  margin-right: 2%;
+}
+
+.type-select select {
+  border-radius: 10px;
+  outline: none;
+  background: #efefef;
+  padding: 10px;
+  margin-bottom: 1%;
+}
+
+.template-div {
+  padding-bottom: 1vh;
+}

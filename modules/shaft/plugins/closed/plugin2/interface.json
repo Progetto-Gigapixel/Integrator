@@ -1,0 +1,15 @@
+{
+    "name": "Test",
+    "analysis_methods":{
+        "shaftless_an": {
+            "description": "Shaftless test analysis",
+            "params": ["image_path"]
+        }
+    },
+    "development_methods": {
+        "shaftless_de":{
+            "description": "Shaftless test development",
+            "params": ["image_path"]
+        }
+    }
+}

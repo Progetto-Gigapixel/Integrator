@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gigapixel integrator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+    rel="stylesheet" />
+  <link rel="icon" href="favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="script.js"></script>
+  <script src="jszip.min.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h2>Model viewer</h2>
+    </header>
+    <main>
+      <div class="row-fields">
+        <div class="art-div">
+          <h3>Art piece</h3>
+          <img id="art-img" src="assets/painting.jpg" class="art-img" alt="Painting" />
+        </div>
+        <div>
+          <div class="row-fields">
+            <h3>Infos</h3>
+            <img src="assets/lock.svg" id="lock" class="lock" alt="lock" />
+          </div>
+          <form>
+            <div class="form-group">
+              <label for="name">Name</label>
+              <br />
+              <input disabled="true" class="field" type="text" id="name" name="name" />
+              <br />
+            </div>
+            <div class="form-group">
+              <label for="author">Author</label>
+              <br />
+              <input disabled="true" class="field" type="text" id="author" name="author" />
+            </div>
+            <div class="form-gourp row-fields margin-5">
+              <div class="painting-size-row">
+                <label for="length">Lenght (mm)</label>
+                <br />
+                <input disabled="true" type="number" class="field" id="length" name="length" />
+              </div>
+              <div class="painting-size-row">
+                <label for="width">Width (mm)</label>
+                <br />
+                <input disabled="true" type="number" class="field" for="width" id="width" name="width" />
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="type-select">
+        <select name="zip-types" id="zip-types">
+          <option value="">Type</option>
+          <option value="one-shot.zip">1 shot</option>
+          <option value="multiple-shots.zip">Multiple shots</option>
+        </select>
+        <div class="template-div">
+          <a>Template directory</a>
+          <button id="zip-upload" class="btn">Browse</button>
+        </div>
+        <div>
+          <a>Artwork directory</a>
+          <button id="art-upload" class="btn">Browse</button>
+        </div>
+      </div>
+      <button id="submit-btn" class="submit-btn">
+        Create template for Unity
+      </button>
+      <div id="create-feedback"></div>
+    </main>
+  </div>
+</body>
+
+</html>

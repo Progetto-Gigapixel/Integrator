@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block top_bar %}
+{{ super() }}
+{% endblock %}
+{% block home_menu %}
+
+
+{{homeMenu(library=True, project=False, save=True)}}
+{{sliding_panel(stand_type=session['stand_type'],output_type=session['output_type'])}}
+{% endblock %}
+{% block content %}
+{%set is3DHide ='hide' if session['new_stand']=='horizontal'%}
+<!-- {%set isStepDisable ='disable' if session['step_disable']=='True'%} -->
+{%set isStepDisable ='disable'%}
+
+<script type="module" src="{{ url_for('static', filename='js/projectpage.js') }}"></script>
+<div id="art-piece" class="l-c g-10 ai-c">
+    <div class="grid-container">
+        <div id="grid" class="grid"></div>
+    </div>
+
+</div>
+<div id="frame" class="l-c">
+    <div id="id-art-piece" class="l-c pad-12-20 g-17 bg-white border-b-beige">
+        <div id="editable-title-author" contenteditable="true">
+            {{session['title']}}, {{session['artist']}}
+        </div>
+        <div id="museum" class="l-r g-17">
+            <div id="editable-location-address" contenteditable="true">
+                {{session['location']}}, {{session['address']}}
+            </div>
+            <div class="icon">
+                <svg width="50" height="51" viewBox="0 0 50 51" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M26.6861 42.7876C30.3358 38.1418 38.6596 26.8821 38.6596 20.5576C38.6596 12.8871 32.5413 6.66382 25 6.66382C17.4587 6.66382 11.3403 12.8871 11.3403 20.5576C11.3403 26.8821 19.6642 38.1418 23.3139 42.7876C24.1889 43.8947 25.811 43.8947 26.6861 42.7876ZM25 15.9263C26.2076 15.9263 27.3657 16.4143 28.2196 17.2828C29.0735 18.1513 29.5532 19.3293 29.5532 20.5576C29.5532 21.7859 29.0735 22.9638 28.2196 23.8324C27.3657 24.7009 26.2076 25.1888 25 25.1888C23.7924 25.1888 22.6343 24.7009 21.7804 23.8324C20.9265 22.9638 20.4468 21.7859 20.4468 20.5576C20.4468 19.3293 20.9265 18.1513 21.7804 17.2828C22.6343 16.4143 23.7924 15.9263 25 15.9263Z"
+                        fill="#800A00" />
+                </svg>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="parameters-frame ">
+        <div id="frame">
+            <div id="stand-frame">
+                <span class="label-bold">Stand</span>
+
+                <div id="stand-buttons">
+                    {{secondaryButton(value="Vertical", id="new-stand-vertical-button",class=('active' if
+                    session['stand_type']=='vertical'))}}
+                    {{secondaryButton(value="Horizontal",id="new-stand-horizontal-button",class=('active' if
+                    session['stand_type']=='horizontal'))}}
+                </div>
+            </div>
+
+            <div id="output-frame">
+                <div id="output">
+                    <span class="label-bold">Output</span>
+                </div>
+                <div id="output-buttons">
+                    {{basic_dropdown(outputOpts, id="new-output-dropdown", optLabel=("Option Type" if
+                    session['output_type']=='' else session['output_type']),
+                    name="output_type")}}
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="parameters-frame {{is3DHide}}" id="displacement-frame">
+        <p class="parameters-inner-label">Total displacement distance of the stand. <span>(xmax= 1700mm,
+                ymax=1450mm)</span></p>
+        <div class="parameters-inner-frame">
+            <div class="field-frame">
+                <p>Width x(mm)</p>
+                {{textField(placeholder="Type",id="displacement-x",value=session['width'])}}
+
+            </div>
+            <div class="field-frame">
+                <p>Length y(mm)</p>
+                {{textField(placeholder="Type" ,id="displacement-y",value=session['height'])}}
+            </div>
+        </div>
+    </div>
+    <div class="parameters-frame {{is3DHide}}" id="step-displacement-frame">
+        <div id="step-displacement-frame">
+            <div class="small-icon" id="icon-lock-close">
+                <svg width="17" height="19" viewBox="0 0 17 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M11.2272 3.4136C11.2272 2.97961 11.4188 2.56339 11.7597 2.25651C12.1007 1.94963 12.5632 1.77723 13.0454 1.77723C13.5276 1.77723 13.9901 1.94963 14.331 2.25651C14.672 2.56339 14.8636 2.97961 14.8636 3.4136C14.8636 3.63059 14.9593 3.8387 15.1298 3.99214C15.3003 4.14558 15.5316 4.23178 15.7727 4.23178C16.0138 4.23178 16.245 4.14558 16.4155 3.99214C16.586 3.8387 16.6818 3.63059 16.6818 3.4136C16.6818 2.54562 16.2986 1.71318 15.6167 1.09943C14.9347 0.485673 14.0098 0.140869 13.0454 0.140869C12.081 0.140869 11.156 0.485673 10.4741 1.09943C9.79214 1.71318 9.40902 2.54562 9.40902 3.4136V6.68632H3.04539C2.32207 6.68632 1.62838 6.94493 1.11692 7.40524C0.605452 7.86556 0.318115 8.48988 0.318115 9.14087V15.6863C0.318115 16.3373 0.605452 16.9616 1.11692 17.4219C1.62838 17.8823 2.32207 18.1409 3.04539 18.1409H12.1363C12.8596 18.1409 13.5533 17.8823 14.0648 17.4219C14.5762 16.9616 14.8636 16.3373 14.8636 15.6863V9.14087C14.8636 8.48988 14.5762 7.86556 14.0648 7.40524C13.5533 6.94493 12.8596 6.68632 12.1363 6.68632H11.2272V3.4136ZM3.04539 8.32269H12.1363C12.3774 8.32269 12.6086 8.40889 12.7791 8.56233C12.9496 8.71577 13.0454 8.92387 13.0454 9.14087V15.6863C13.0454 15.9033 12.9496 16.1114 12.7791 16.2649C12.6086 16.4183 12.3774 16.5045 12.1363 16.5045H3.04539C2.80428 16.5045 2.57305 16.4183 2.40256 16.2649C2.23208 16.1114 2.1363 15.9033 2.1363 15.6863V9.14087C2.1363 8.92387 2.23208 8.71577 2.40256 8.56233C2.57305 8.40889 2.80428 8.32269 3.04539 8.32269Z"
+                        fill="#170200" />
+                    <circle cx="7.68177" cy="12.4137" r="1.63636" fill="#170200" />
+                </svg>
+            </div>
+            <div class="small-icon" id="icon-lock-open">
+                <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <ellipse cx="8.00013" cy="12.4137" rx="1.63636" ry="1.63636" fill="#170200" />
+                    <path
+                        d="M12.6024 6.44087V4.64087C12.6024 3.44739 12.1175 2.3028 11.2544 1.45889C10.3913 0.614975 9.22071 0.140869 8.00011 0.140869C6.77951 0.140869 5.60891 0.614975 4.74581 1.45889C3.88272 2.3028 3.39784 3.44739 3.39784 4.64087V6.44087C2.66548 6.44087 1.96312 6.72533 1.44526 7.23168C0.927403 7.73803 0.636475 8.42478 0.636475 9.14087V15.4409C0.636475 16.157 0.927403 16.8437 1.44526 17.3501C1.96312 17.8564 2.66548 18.1409 3.39784 18.1409H12.6024C13.3347 18.1409 14.0371 17.8564 14.555 17.3501C15.0728 16.8437 15.3637 16.157 15.3637 15.4409V9.14087C15.3637 8.42478 15.0728 7.73803 14.555 7.23168C14.0371 6.72533 13.3347 6.44087 12.6024 6.44087ZM5.23875 4.64087C5.23875 3.92478 5.52968 3.23803 6.04753 2.73168C6.56539 2.22533 7.26775 1.94087 8.00011 1.94087C8.73247 1.94087 9.43483 2.22533 9.95269 2.73168C10.4705 3.23803 10.7615 3.92478 10.7615 4.64087V6.44087H5.23875V4.64087ZM13.5228 15.4409C13.5228 15.6796 13.4259 15.9085 13.2532 16.0773C13.0806 16.246 12.8465 16.3409 12.6024 16.3409H3.39784C3.15372 16.3409 2.9196 16.246 2.74698 16.0773C2.57436 15.9085 2.47738 15.6796 2.47738 15.4409V9.14087C2.47738 8.90217 2.57436 8.67326 2.74698 8.50447C2.9196 8.33569 3.15372 8.24087 3.39784 8.24087H12.6024C12.8465 8.24087 13.0806 8.33569 13.2532 8.50447C13.4259 8.67326 13.5228 8.90217 13.5228 9.14087V15.4409Z"
+                        fill="#170200" />
+                </svg>
+
+            </div>
+            <p class="parameters-inner-label {{isStepDisable}}" id="step-displacement-label">Step displacement distance
+            </p>
+        </div>
+        <div class="parameters-inner-frame {{isStepDisable}}" id="step-displacement-inner">
+            <div class="field-frame">
+                <p>Width x(mm)</p>
+                {{textField(id="step-distance-x", value=session['stepx'])}}
+            </div>
+            <div class="field-frame">
+                <p>Length y(mm)</p>
+                {{textField(id="step-distance-y", value=session['stepy'])}}
+            </div>
+        </div>
+    </div>
+    <div class="parameters-frame {{is3DHide}}" id="shot-number-frame">
+        <p class="parameters-inner-label">Shot number</p>
+        <div class="parameters-inner-frame">
+            <div class="field-frame">
+                <span class="label">n° shot x axis</span>
+                {{textField(placeholder="18",id="shot-number-x",readOnly=True,isDisabled=True)}}
+            </div>
+            <div class="field-frame">
+                <span class="label">n° shot y axis</span>
+                {{textField(placeholder="24" ,id="shot-number-y",readOnly=True,isDisabled=True)}}
+            </div>
+        </div>
+    </div>
+    <div class="parameters-frame {{is3DHide}}" id="vibration-time-frame">
+        <p class="parameters-inner-label">Vibration detection parameters</p>
+        <div class="parameters-inner-frame">
+            <div class="field-frame">
+                {{basic_dropdown(vibrationOpts, id="new-sensivity-dropdown",optLabel=vibrationLabel,
+                name="sensitivity"
+                )}}
+            </div>
+            <div class="field-frame">
+                <span id="vibration-time-label">Vibration checking time (sec)</span>
+                {{textField(placeholder="Type" ,id="vibration-time" ,value=session['vibration_check_time'])}}
+            </div>
+        </div>
+    </div>
+</div>
+<div id="validate-frame">
+
+    {{mainButton(value="Validate data", isDisabled="(session['new_stand']=='' or
+    session['output_type=='')",redirect='/first',id="validate-button")}}
+
+</div>
+</div>
+{% endblock %}

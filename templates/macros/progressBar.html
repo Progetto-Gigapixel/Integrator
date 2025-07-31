@@ -1,0 +1,12 @@
+{% macro progressBar(id='',class='',isDisabled=False) %}
+<div class="wf">
+    <div class="progress-header">
+        <span class="progress-label" id="{{id}}-label">In progress</span>
+        <span class="progress-percentage" id="{{id}}-percentage">0%</span>
+    </div>
+    <div class="progress-bar-container">
+        <div class="progress-bar" id="{{id}}-progress-bar"></div>
+    </div>
+</div>
+<script type="module" src="{{ url_for('static', filename='js/components/progressBar.js') }}"></script>
+{% endmacro %}

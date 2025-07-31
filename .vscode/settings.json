@@ -1,0 +1,7 @@
+{
+  "cmake.sourceDirectory": "/home/hjcsteve/gigapixel/Integrator/modules/imagematcher/mvs-texturing",
+  "files.associations": {
+    "*.dbclient-js": "javascript",
+    "ostream": "cpp"
+  }
+}

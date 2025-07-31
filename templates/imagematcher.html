@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+
+{% block top_bar %}
+{{ super() }}
+{% endblock %}
+{% block home_menu %}
+
+{{homeMenu(library=True, project=True, save=True)}}
+{{sliding_panel(stand_type=session['stand_type'],output_type=session['output_type'])}}
+{% endblock %}
+{% block toolbar %}
+{{toolbar(current='imagematcher',capturer=True,shaft=True,nlights=True,imagematcher=True,modelviewer=True)}}
+{% endblock %}
+{% block content %}
+<div id="flask-session-data" data-nshotx="{{ session.get('nshotx') | tojson | safe }}"
+    data-nshoty="{{ session.get('nshoty') | tojson | safe }}" data-stepx="{{ session.get('stepx') | tojson | safe }}"
+    data-stepy="{{ session.get('stepy') | tojson | safe }}">
+</div>
+
+<script type="module" src="{{ url_for('static', filename='js/imagematcher.js') }}"></script>
+<div id="imagematcher-content" class="l-c wf h-auto p-20 g-24">
+    {{ titleLabel('Imagematcher') }}
+    <div id="select-map-label" class="l-r h-auto g-8">
+        <span class="label-bold">Select maps</span>
+        <div class="small-icon" id="matcher-locked">
+            <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="8.00013" cy="12.4137" rx="1.63636" ry="1.63636" fill="#170200" />
+                <path
+                    d="M12.6024 6.44087V4.64087C12.6024 3.44739 12.1175 2.3028 11.2544 1.45889C10.3913 0.614975 9.22071 0.140869 8.00011 0.140869C6.77951 0.140869 5.60891 0.614975 4.74581 1.45889C3.88272 2.3028 3.39784 3.44739 3.39784 4.64087V6.44087C2.66548 6.44087 1.96312 6.72533 1.44526 7.23168C0.927403 7.73803 0.636475 8.42478 0.636475 9.14087V15.4409C0.636475 16.157 0.927403 16.8437 1.44526 17.3501C1.96312 17.8564 2.66548 18.1409 3.39784 18.1409H12.6024C13.3347 18.1409 14.0371 17.8564 14.555 17.3501C15.0728 16.8437 15.3637 16.157 15.3637 15.4409V9.14087C15.3637 8.42478 15.0728 7.73803 14.555 7.23168C14.0371 6.72533 13.3347 6.44087 12.6024 6.44087ZM5.23875 4.64087C5.23875 3.92478 5.52968 3.23803 6.04753 2.73168C6.56539 2.22533 7.26775 1.94087 8.00011 1.94087C8.73247 1.94087 9.43483 2.22533 9.95269 2.73168C10.4705 3.23803 10.7615 3.92478 10.7615 4.64087V6.44087H5.23875V4.64087ZM13.5228 15.4409C13.5228 15.6796 13.4259 15.9085 13.2532 16.0773C13.0806 16.246 12.8465 16.3409 12.6024 16.3409H3.39784C3.15372 16.3409 2.9196 16.246 2.74698 16.0773C2.57436 15.9085 2.47738 15.6796 2.47738 15.4409V9.14087C2.47738 8.90217 2.57436 8.67326 2.74698 8.50447C2.9196 8.33569 3.15372 8.24087 3.39784 8.24087H12.6024C12.8465 8.24087 13.0806 8.33569 13.2532 8.50447C13.4259 8.67326 13.5228 8.90217 13.5228 9.14087V15.4409Z"
+                    fill="#170200" />
+            </svg>
+
+        </div>
+    </div>
+
+
+    <div id="matcher-selectmaps-frame" class="l-c h-auto g-24">
+
+        <div class="select-map l-c g-8">
+            <span class="label-bold">Maps</span>
+            <div class="l-c g-8">
+
+                <div class="path-frame l-r g-4">
+                    <div class="path-inner l-r jc-sb g-4">
+                        <span class="body">Maps folder path</span>
+                        {{ pathField(id='imagematcher-maps-path', value=session["imagematcher_maps_path"]) }}
+                    </div>
+
+                </div>
+
+                <div class="save-frame l-r g-4">
+                    <div class="path-inner l-r jc-sb g-4">
+                        <span class="body">Texture save in</span>
+                        {{ pathField(id='imagematcher-tex-out-path', value=session["imagematcher_tex_out_path"]) }}
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+
+        {{ mainButton(id="matcher-validate-btn", value="Validate selection", class="main-button") }}
+    </div>
+
+    <div id="matcher-alignmaps-frame" class="l-c g-24 opace">
+        <span class="label-bold">Manage alignment</span>
+        <div id="matcher-alignmaps-inner" class="l-c g-8">
+            {{ mainButton(id="matcher-alignmaps-btn", value="Align maps", class="main-button") }}
+            <div class="l-r g-24">
+                {{secondaryButton(id="matcher-alignmaps-manual-btn",value="Adjust
+                manually",class="secondary-button-default")}}
+                {{secondaryButton(id="matcher-alignmaps-again-btn",value="Align
+                again",class="secondary-button-default")}}
+                {{secondaryButton(id="matcher-alignmaps-aligning-btn",value="Aligning...",class="secondary-button-default")}}
+            </div>
+        </div>
+        <div id="imagematcher-alignmaps-bar-frame" class="wf l-r jc-sb g-12">
+            {{progressBar(id="imagematcher-alignment-bar")}}
+        </div>
+        <div id="imagematcher-merge-bar-frame" class="wf l-r jc-sb g-12">
+            {{progressBar(id="imagematcher-merge-bar")}}
+        </div>
+        {{mainButton(id="matcher-merge-btn",value="Align all maps and merge",class="main-button")}}
+    </div>
+</div>
+
+{% endblock %}

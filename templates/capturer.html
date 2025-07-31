@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block top_bar %}
+{{ super() }}
+{% endblock %}
+{% block home_menu %}
+
+{{homeMenu(library=True, project=True, save=True)}}
+{{sliding_panel(stand_type=session['stand_type'],output_type=session['output_type'])}}
+{% endblock %}
+
+{% block toolbar %}
+{{toolbar(current='capturer',capturer=True,shaft=True,nlights=True,imagematcher=True,modelviewer=True)}}
+{% endblock %}
+{% block content %}
+
+<div id="flask-session-data" data-nshotx="{{ session.get('nshotx') | tojson | safe }}"
+    data-nshoty="{{ session.get('nshoty') | tojson | safe }}" data-stepx="{{ session.get('stepx') | tojson | safe }}"
+    data-stepy="{{ session.get('stepy') | tojson | safe }}">
+</div>
+
+<script type="module" src="{{ url_for('static', filename='js/capturer.js') }}"></script>
+<div id="capturer-content" class="l-c wf h-auto p-20 g-24">
+
+
+    {{titleLabel('Capturer') }}
+
+    <span class="label-bold" id="camera-position-label">Camera position x:0 mm ; y:0 mm</span>
+
+    <div id="capturer-art-piece-pos" class="l-c ai-c">
+        <!-- <div id="capturer-art-piece-canvas"></div> -->
+        <div class="grid-container">
+            <div id="grid" class="grid"></div>
+            <div id="shot-grid"> </div>
+            <div id="target" class="l-c ai-c jc-c">
+                <div class="position-rectangle"></div>
+                <svg width="34" height="33" viewBox="0 0 34 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="17" cy="17" r="9.5" stroke="#800A00" />
+                    <circle cx="17" cy="17" r="4" fill="#800A00" />
+                    <path
+                        d="M17.5 1C17.5 0.723858 17.2761 0.5 17 0.5C16.7239 0.5 16.5 0.723858 16.5 1H17.5ZM17.5 7V1H16.5V7H17.5Z"
+                        fill="#800A00" />
+                    <path
+                        d="M16.5 32C16.5 32.2761 16.7239 32.5 17 32.5C17.2761 32.5 17.5 32.2761 17.5 32L16.5 32ZM16.5 26L16.5 32L17.5 32L17.5 26L16.5 26Z"
+                        fill="#800A00" />
+                    <path
+                        d="M33 17.5C33.2761 17.5 33.5 17.2761 33.5 17C33.5 16.7239 33.2761 16.5 33 16.5L33 17.5ZM27 17.5L33 17.5L33 16.5L27 16.5L27 17.5Z"
+                        fill="#800A00" />
+                    <path
+                        d="M1 16.5C0.723858 16.5 0.5 16.7239 0.5 17C0.5 17.2761 0.723858 17.5 1 17.5V16.5ZM7 16.5H1V17.5H7V16.5Z"
+                        fill="#800A00" />
+                </svg>
+
+            </div>
+        </div>
+        <div id="capturer-art-piece"></div>
+
+    </div>
+    <div id="capturer-setting-frame" class="l-r jc-sb wf">
+        <script src="{{ url_for('static', filename='js/components/lightGroup.js') }}"></script>
+        <div id="select-light-frame" class="l-c g-12 ai-c hf">
+            <span class="label-bold">Select lights</span>
+            <div id="select-light-group">{{ lightGroup(type='3D', switch='on') }}</div>
+        </div>
+        <div id="step-position-frame" class="l-c g-24 ai-c hf">
+            <span class="label-bold">Step position (x ; y)</span>
+            <div id="step-position-group">
+                <svg width="119" height="119" viewBox="0 0 119 119" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path id="step-position-up" d="M75 30H45V17.5207L60 0L75 17.5207V30Z" fill="#800A00" />
+                    <path id="step-position-right" d="M89 74L89 44L101.479 44L119 59L101.479 74L89 74Z"
+                        fill="#800A00" />
+                    <circle cx="60" cy="60" r="9.5" stroke="#800A00" />
+                    <circle cx="60" cy="60" r="4" fill="#800A00" />
+                    <path
+                        d="M60.5 44C60.5 43.7239 60.2761 43.5 60 43.5C59.7239 43.5 59.5 43.7239 59.5 44H60.5ZM60.5 50V44H59.5V50H60.5Z"
+                        fill="#800A00" />
+                    <path
+                        d="M59.5 75C59.5 75.2761 59.7239 75.5 60 75.5C60.2761 75.5 60.5 75.2761 60.5 75L59.5 75ZM59.5 69L59.5 75L60.5 75L60.5 69L59.5 69Z"
+                        fill="#800A00" />
+                    <path
+                        d="M76 60.5C76.2761 60.5 76.5 60.2761 76.5 60C76.5 59.7239 76.2761 59.5 76 59.5L76 60.5ZM70 60.5L76 60.5L76 59.5L70 59.5L70 60.5Z"
+                        fill="#800A00" />
+                    <path
+                        d="M44 59.5C43.7239 59.5 43.5 59.7239 43.5 60C43.5 60.2761 43.7239 60.5 44 60.5V59.5ZM50 59.5H44V60.5H50V59.5Z"
+                        fill="#800A00" />
+                    <path id="step-position-down" d="M45 89L75 89L75 101.479L60 119L45 101.479L45 89Z" fill="#800A00" />
+                    <path id="step-position-left" d="M30 44L30 74L17.5207 74L1.96701e-06 59L17.5207 44L30 44Z"
+                        fill="#800A00" />
+                </svg>
+            </div>
+        </div>
+
+        <div id="free-position-frame" class="l-c g-24 ">
+            <div class="l-r">
+                <div class="small-icon" id="icon-lock-open">
+                    <svg width="17" height="19" viewBox="0 0 17 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M11.2272 3.4136C11.2272 2.97961 11.4188 2.56339 11.7597 2.25651C12.1007 1.94963 12.5632 1.77723 13.0454 1.77723C13.5276 1.77723 13.9901 1.94963 14.331 2.25651C14.672 2.56339 14.8636 2.97961 14.8636 3.4136C14.8636 3.63059 14.9593 3.8387 15.1298 3.99214C15.3003 4.14558 15.5316 4.23178 15.7727 4.23178C16.0138 4.23178 16.245 4.14558 16.4155 3.99214C16.586 3.8387 16.6818 3.63059 16.6818 3.4136C16.6818 2.54562 16.2986 1.71318 15.6167 1.09943C14.9347 0.485673 14.0098 0.140869 13.0454 0.140869C12.081 0.140869 11.156 0.485673 10.4741 1.09943C9.79214 1.71318 9.40902 2.54562 9.40902 3.4136V6.68632H3.04539C2.32207 6.68632 1.62838 6.94493 1.11692 7.40524C0.605452 7.86556 0.318115 8.48988 0.318115 9.14087V15.6863C0.318115 16.3373 0.605452 16.9616 1.11692 17.4219C1.62838 17.8823 2.32207 18.1409 3.04539 18.1409H12.1363C12.8596 18.1409 13.5533 17.8823 14.0648 17.4219C14.5762 16.9616 14.8636 16.3373 14.8636 15.6863V9.14087C14.8636 8.48988 14.5762 7.86556 14.0648 7.40524C13.5533 6.94493 12.8596 6.68632 12.1363 6.68632H11.2272V3.4136ZM3.04539 8.32269H12.1363C12.3774 8.32269 12.6086 8.40889 12.7791 8.56233C12.9496 8.71577 13.0454 8.92387 13.0454 9.14087V15.6863C13.0454 15.9033 12.9496 16.1114 12.7791 16.2649C12.6086 16.4183 12.3774 16.5045 12.1363 16.5045H3.04539C2.80428 16.5045 2.57305 16.4183 2.40256 16.2649C2.23208 16.1114 2.1363 15.9033 2.1363 15.6863V9.14087C2.1363 8.92387 2.23208 8.71577 2.40256 8.56233C2.57305 8.40889 2.80428 8.32269 3.04539 8.32269Z"
+                            fill="#170200" />
+                        <circle cx="7.68177" cy="12.4137" r="1.63636" fill="#170200" />
+                    </svg>
+                </div>
+                <div class="small-icon" id="icon-lock-close">
+                    <svg width="16" height="19" viewBox="0 0 16 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <ellipse cx="8.00013" cy="12.4137" rx="1.63636" ry="1.63636" fill="#170200" />
+                        <path
+                            d="M12.6024 6.44087V4.64087C12.6024 3.44739 12.1175 2.3028 11.2544 1.45889C10.3913 0.614975 9.22071 0.140869 8.00011 0.140869C6.77951 0.140869 5.60891 0.614975 4.74581 1.45889C3.88272 2.3028 3.39784 3.44739 3.39784 4.64087V6.44087C2.66548 6.44087 1.96312 6.72533 1.44526 7.23168C0.927403 7.73803 0.636475 8.42478 0.636475 9.14087V15.4409C0.636475 16.157 0.927403 16.8437 1.44526 17.3501C1.96312 17.8564 2.66548 18.1409 3.39784 18.1409H12.6024C13.3347 18.1409 14.0371 17.8564 14.555 17.3501C15.0728 16.8437 15.3637 16.157 15.3637 15.4409V9.14087C15.3637 8.42478 15.0728 7.73803 14.555 7.23168C14.0371 6.72533 13.3347 6.44087 12.6024 6.44087ZM5.23875 4.64087C5.23875 3.92478 5.52968 3.23803 6.04753 2.73168C6.56539 2.22533 7.26775 1.94087 8.00011 1.94087C8.73247 1.94087 9.43483 2.22533 9.95269 2.73168C10.4705 3.23803 10.7615 3.92478 10.7615 4.64087V6.44087H5.23875V4.64087ZM13.5228 15.4409C13.5228 15.6796 13.4259 15.9085 13.2532 16.0773C13.0806 16.246 12.8465 16.3409 12.6024 16.3409H3.39784C3.15372 16.3409 2.9196 16.246 2.74698 16.0773C2.57436 15.9085 2.47738 15.6796 2.47738 15.4409V9.14087C2.47738 8.90217 2.57436 8.67326 2.74698 8.50447C2.9196 8.33569 3.15372 8.24087 3.39784 8.24087H12.6024C12.8465 8.24087 13.0806 8.33569 13.2532 8.50447C13.4259 8.67326 13.5228 8.90217 13.5228 9.14087V15.4409Z"
+                            fill="#170200" />
+                    </svg>
+
+                </div>
+                <span class="label-bold" id="free-position-label">Free position</span>
+
+            </div>
+
+            <div id="free-position-group">
+                <div id="free-position-group-vertical" class="l-c jc-sb absolute hf">
+                    {{ playButton(id="free-position-up") }}
+                    {{ playButton(id="free-position-down") }}
+                </div>
+                <div id="free-position-group-horizontal" class="l-r jc-sb wf absolute h-auto">
+                    {{ playButton(id="free-position-left") }}
+                    {{ playButton(id="free-position-right") }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="vibration-status-frame" class="l-c g-24">
+        <span class="label-bold">Vibration status</span>
+        <div id="vibration-status-group" class="l-r g-24">
+            <div id="vibration-status" class="l-c">
+                {{ spinner() }}
+                <span id="vibrating-label">Vibrating</span>
+                <span id="vibration-ok">
+                    OK
+                </span>
+            </div>
+            {{ secondaryButton(id="vibration-btn", value="Checking...") }}
+            <div id="vibration-ok-help" class="g-16 wf">
+                <span class="body-bold" id="vibration-ok-label">You can now start capturing with
+                    <span id="phocus-label">Phocus</span></span>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

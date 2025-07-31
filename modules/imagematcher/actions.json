@@ -1,0 +1,11 @@
+{
+  "undo redo_frame": "Contiene i pulsanti per annullare e rifare le azioni.",
+  "find keypoints_button": "Pulsante per trovare i punti chiave nelle immagini.",
+  "left text_label": "Etichetta per i punti chiave dell'immagine a sinistra.",
+  "right text_label": "Etichetta per i punti chiave dell'immagine a destra.",
+  "search frame": "Contiene i campi per cercare i tiepoints.",
+  "reprojection button": "Pulsante per calcolare l'errore di riproiezione.\nProva a capo\nProva **bold**",
+  "threshold slider": "Slider per impostare la soglia dell'errore di riproiezione.",
+  "filter button": "Pulsante per selezionare i N migliori punti.",
+  "preview button": "Pulsante per visualizzare in anteprima e salvare i risultati."
+}

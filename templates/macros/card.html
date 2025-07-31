@@ -1,0 +1,37 @@
+{% macro project_card(new=false, title='',thumbnail_path='test', artist='John Doe', width='...', height='...',id=-1) -%}
+{% if new %}
+<div class="project-card new l-c">
+    <div class="card-thumbnail-div bg-white" onclick="window.location.href='/projectpage/new'">
+        <div class=" new-project">
+            <svg width="22" height="21" viewBox="0 0 22 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 0V20M1 10H21" stroke="black" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+            <span class="body">New Project</span>
+        </div>
+    </div>
+    <div class="wf g-4">
+        <span class="body">Title :</span>
+        <br>
+        <span class="label card-title"></span>
+    </div>
+    <span class="body">Artist:</span>
+    <span class="body">Dimension:</span>
+</div>
+{% else %}
+<div class="project-card default l-c" data-id={{id}} data-title={{title}}>
+    <div class="card-thumbnail-div bg-white" ">
+        <img title=" Thumbnail" src="{{ url_for('static', filename='/thumbnails/' + thumbnail_path + '.jpg') }}"
+        class="card-thumbnail" />
+</div>
+<div class="wf g-4">
+    <span class="body">Title :</span>
+    <br>
+    <span class="label card-title">{{title}}</span>
+</div>
+<span class="body">Artist: {{artist}}</span>
+<span class="body">Dimension: {{width}} X {{height}}</span>
+</div>
+
+{% endif %}
+{%- endmacro %}

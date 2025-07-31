@@ -1,0 +1,26 @@
+{% macro basic_dropdown(options=[{"id": "id", "value": "v"}], optLabel="Select an option",
+name="basic-dropdown", url="",id="",method="POST") %}
+
+<div class="custom-dropdown wf">
+    <div class="dropdown-btn l-r g-16 bg-white" id="dropdown-btn">
+        <span class="dropdown-selected label" id="{{id}}">{{optLabel}}</span>
+        <div class="dropdown-icon">
+            <svg class="dropdown-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 9L12 15L18 9" stroke="#800A00" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+            </svg>
+        </div>
+
+    </div>
+    <div id="dropdown-content" class="dropdown-content">
+        {% for option in options %}
+        <a name-value="{{name}}" method="{{method}}" url="{{option.url}}" data-value="{{option.value}}"
+            data-label="{{option.label}}" class="dropdown-item" redirect="{{option.redirect}}"><span class="body">{{
+                option.label
+                }}</span></a>
+        {% endfor %}
+    </div>
+</div>
+
+{% endmacro %}

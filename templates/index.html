@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% from 'macros/card.html' import project_card %}
+
+{% block top_bar %}
+{{ super() }}
+{% endblock %}
+{% block home_menu %}
+{{homeMenu(open=True, library=False, project=False, save=False, help=False)}}
+{% endblock %}
+{% block content %}
+<div id="flask-session-data" data-nshotx="{{ session.get('nshotx') | tojson | safe }}"
+    data-nshoty="{{ session.get('nshoty') | tojson | safe }}" data-stepx="{{ session.get('stepx') | tojson | safe }}"
+    data-stepy="{{ session.get('stepy') | tojson | safe }}">
+</div>
+
+<script type="module" src="{{ url_for('static', filename='js/index.js') }}"></script>
+<div class="home-content l-c ai-c p-20 g-20">
+    <div class="top-bar">
+        <div class="research-bar-wrapper">
+            <input type="text" name="" id="research-bar" placeholder="Research">
+            <div class="search-icon">
+                <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M19.375 17.5H18.3875L18.0375 17.1625C19.5375 15.4125 20.3125 13.025 19.8875 10.4875C19.3 7.01255 16.4 4.23755 12.9 3.81255C7.61255 3.16255 3.16255 7.61255 3.81255 12.9C4.23755 16.4 7.01255 19.3 10.4875 19.8875C13.025 20.3125 15.4125 19.5375 17.1625 18.0375L17.5 18.3875V19.375L22.8125 24.6875C23.325 25.2 24.1625 25.2 24.675 24.6875C25.1875 24.175 25.1875 23.3375 24.675 22.825L19.375 17.5ZM11.875 17.5C8.76255 17.5 6.25005 14.9875 6.25005 11.875C6.25005 8.76255 8.76255 6.25005 11.875 6.25005C14.9875 6.25005 17.5 8.76255 17.5 11.875C17.5 14.9875 14.9875 17.5 11.875 17.5Z"
+                        fill="#800A00" />
+                </svg>
+            </div>
+        </div>
+
+        <div id="sort-by-wrapper">{{basic_dropdown(sortOpts, optLabel=current_sort, name="basic-dropdown", url="",
+            id="sort-by-dropdown",
+            method="GET")}}</div>
+
+    </div>
+    <div class="card-container g-12 p-0">
+        {{ project_card(new=true) }}
+        {% for p in projectsList %}
+        {{ project_card(new=false, title=p.title, thumbnail_path=p.thumbnail, width=p.width, height=p.height,
+        artist=p.artist, id=p.id) }}
+        {% endfor %}
+    </div>
+</div>
+</div>
+{% endblock %}

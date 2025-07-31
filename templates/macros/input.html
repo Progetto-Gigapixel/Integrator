@@ -1,0 +1,54 @@
+{% macro textField(name='', label='', type='text', value='', classes='', placeholder="", id='', readOnly=False,
+isDisabled=False) %}
+<div class="field-frame">
+    <input aria-label="{{label}}" type="text" class="text-field {{classes}}" value="{{value}}" name="{{name}}"
+        id="{{id}}" placeholder="{{placeholder}}" {{"readonly" if readOnly}} {{"disabled" if isDisabled}}>
+</div>
+{% endmacro %}
+{% from 'macros/button.html' import secondaryButton, mainButton, playButton %}
+
+{% macro pathField(name='', label='', type='text', value='', classes='', placeholder="", id='') %}
+<!-- 
+<div class="file-selector">
+    <div class="path-display" id="pathDisplay">No folder selected</div>
+    <button class="select-button" id="selectButton">Select Folder</button>
+    <input type="file" id="fileInput" webkitdirectory directory multiple style="display: none;">
+</div> -->
+<div class="path-selector-div" id="{{id}}">
+    <!-- <input aria-label="{{label}}" type="file" class="path-field' {{classes}}" name="{{name}}" id="{{id}}"
+        placeholder="{{placeholder}}" webkitdirectory directory multiple> -->
+    <label class="path-label" for="{{id}}" id="{{id}}-label">
+        {% if value!="" %}
+        {{value}}
+        {% else %}
+        Browse
+        {% endif %}
+    </label>
+    <button class="path-selector-btn"">
+        <svg width=" 14" height="8" viewBox="0 0 14 8" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 1L7 7L13 1" stroke="#170200" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+    </button>
+
+</div>
+
+<!-- <script type="module" src="{{ url_for('static', filename='js/components/text-field.js') }}"></script> -->
+
+{% endmacro %}
+
+
+{% macro checkBox(checked=False,id='') %}
+
+<label class="checkbox">
+    <input type="checkbox" id="{{id}}" {{"checked" if checked}}>
+    <span class="checkmark">
+        <svg width="14" height="12" viewBox="0 0 14 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" clip-rule="evenodd"
+                d="M13.6427 0.234616C14.0661 0.590294 14.1211 1.22188 13.7654 1.64531L5.36723 11.6427C5.18082 11.8646 4.9074 11.9949 4.61762 11.9999C4.32784 12.0048 4.05013 11.884 3.85625 11.6685L0.25705 7.66957C-0.112892 7.25854 -0.0795702 6.62544 0.331478 6.25551C0.742525 5.88558 1.37564 5.91891 1.74559 6.32994L4.57446 9.47302L12.232 0.357285C12.5876 -0.0661403 13.2193 -0.121061 13.6427 0.234616Z"
+                fill="#FFFDFA" />
+        </svg>
+    </span>
+</label>
+
+
+{% endmacro %}

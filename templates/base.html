@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integrator</title>
+    <link href='https://fonts.googleapis.com/css?family=Inter' rel='stylesheet'>
+
+    <link rel="stylesheet" href="{{url_for('static',filename='css/homepage.css')}}">
+</head>
+{% from 'macros/label.html' import boldLabel %}
+{% from 'macros/button.html' import secondaryButton, mainButton, playButton %}
+{% from 'macros/dropdown.html' import basic_dropdown %}
+{% from 'macros/input.html' import textField, pathField,checkBox %}
+{% from 'macros/slidePanel.html' import sliding_panel, helpButton %}
+{% from 'macros/toolbar.html' import toolbar %}
+{% from 'macros/iconLabel.html' import titleLabel %}
+{% from 'macros/lightGroup.html' import lightGroup %}
+{% from 'macros/loader.html' import spinner %}
+{% from 'macros/progressBar.html' import progressBar %}
+{% from 'macros/homeMenu.html' import homeMenu %}
+<script src="{{ url_for('static', filename='js/components/dropdown.js') }}"></script>
+
+<body>
+    <div class="container">
+        <div id="container-header">
+            {% block top_bar %}
+            <div class="top-bar-home-page">
+                <p class="title-home-page">Gigapixel-Integrator</p>
+                <button class="close-button" id="close-button" title="Close">
+                    <div class="close-icon">
+                        <svg c width="31" height="30" viewBox="0 0 31 30" fill="none"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M22.9584 7.1374C22.4709 6.6499 21.6834 6.6499 21.1959 7.1374L15.0834 13.2374L8.9709 7.1249C8.4834 6.6374 7.6959 6.6374 7.2084 7.1249C6.7209 7.6124 6.7209 8.3999 7.2084 8.8874L13.3209 14.9999L7.2084 21.1124C6.7209 21.5999 6.7209 22.3874 7.2084 22.8749C7.6959 23.3624 8.4834 23.3624 8.9709 22.8749L15.0834 16.7624L21.1959 22.8749C21.6834 23.3624 22.4709 23.3624 22.9584 22.8749C23.4459 22.3874 23.4459 21.5999 22.9584 21.1124L16.8459 14.9999L22.9584 8.8874C23.4334 8.4124 23.4334 7.6124 22.9584 7.1374Z"
+                                fill="#800A00" />
+                        </svg>
+                    </div>
+                </button>
+            </div>
+            {% endblock %}
+            {% block home_menu %}
+            <div class="home-menu">
+                <div class="open-project">
+                    <div class="folder-icon">
+
+                        <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M3.75 7.5V21C3.75 22.4 3.75 23.1 4.0225 23.635C4.26218 24.1054 4.64462 24.4878 5.115 24.7275C5.64875 25 6.34875 25 7.74625 25H22.2537C23.6512 25 24.35 25 24.8837 24.7275C25.355 24.4875 25.7375 24.105 25.9775 23.635C26.25 23.1 26.25 22.4 26.25 21V11.5C26.25 10.1 26.25 9.4 25.9775 8.865C25.7378 8.39462 25.3554 8.01218 24.885 7.7725C24.35 7.5 23.65 7.5 22.25 7.5H15M3.75 7.5H15M3.75 7.5C3.75 6.83696 4.01339 6.20107 4.48223 5.73223C4.95107 5.26339 5.58696 5 6.25 5H10.8438C11.455 5 11.7612 5 12.0487 5.06875C12.3037 5.13125 12.5475 5.23125 12.7713 5.36875C13.0238 5.52375 13.24 5.74 13.6713 6.1725L15 7.5"
+                                stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                    </div>
+
+                    <p class="preferences">Open project</p>
+                </div>
+            </div>
+            {% endblock %}
+
+            {% block toolbar %}
+
+            {% endblock %}
+        </div>
+        <div class="main-content">
+            {% block content %}
+
+            {% endblock %}
+        </div>
+    </div>
+
+</body>
+
+</html>

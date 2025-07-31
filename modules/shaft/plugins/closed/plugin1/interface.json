@@ -1,0 +1,15 @@
+{
+    "name": "Echo",
+    "analysis_methods":{
+        "echo_an": {
+            "description": "echo params",
+            "params": ["param1", "param2"]
+        }
+    },
+    "development_methods": {
+        "echo_de": {
+            "description": "echo params",
+            "params": ["param1", "param2"]
+        }
+    }
+}

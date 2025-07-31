@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+
+{% block top_bar %}
+{{ super() }}
+{% endblock %}
+{% block home_menu %}
+
+{{homeMenu(library=True, project=True, save=True)}}
+{{sliding_panel(stand_type=session['stand_type'],output_type=session['output_type'])}}
+{% endblock %}
+{% block toolbar %}
+{{toolbar(current='shaft',capturer=True,shaft=True,nlights=True,imagematcher=True,modelviewer=True)}}
+{% endblock %}
+{% block content %}
+
+<div id="flask-session-data" data-is_shaft_developed="{{ session.get('is_shaft_developed',False) | tojson | safe }}">
+</div>
+
+<script type="module" src="{{ url_for('static', filename='js/shaft.js') }}"></script>
+<div id="shaft-content" class="l-c g-24 p-20 wf">
+    {{titleLabel('Shaft') }}
+    <div id="checker-board-frame" class="l-c g-24 wf">
+        <div id="checker-board-inner" class="l-c g-16">
+            <span class="label-bold">Checkerboard analysis</span>
+            <div id="colorchecker-path-frame" class="l-r g-32 ai-c">
+                <span class="body">Colorchecker path</span>
+                {{pathField(id="colorchecker-path", value=session['shaft_colorchecker_path'])}}
+            </div>
+            <div id="flatfield-path-frame" class="l-r jc-sb g-32 w-228">
+                <span class="body">Flat fielding path</span>
+                {{pathField(id="flatfield-path", value=session['shaft_flatfield_file_path'])}}
+            </div>
+            <div id="output-color-space-frame" class="l-r g-27 ai-c">
+                <span class="body">Output color space</span>
+                {{basic_dropdown(outputColorOpts, optLabel=outputColorLabel, name="shaft_output_colorspace"
+                )}}
+            </div>
+            <div class="l-r g-17 ai-c">
+                {{checkBox(id="shaft-sharpen",checked=session['shaft_sharpen'])}}
+                <p class="label-regular">Sharpen </p>
+                {{checkBox(id="shaft-light-balance",checked=session['shaft_light_balance'])}}
+                <p class="label-regular">Light balance</p>
+            </div>
+            <div id="shaft-savein-frame" class="l-r g-76 ai-c">
+                <span class="label-bold">Save in</span>
+                {{pathField(id="shaft-savein-path",value=session['shaft_savein_path'])}}
+            </div>
+        </div>
+        {{mainButton(id="analyze-shaft-btn",value="Analyze Color Checker",class="main-button")}}
+        <div id="shaft-analyzing" class="g-24 l-r">
+            {{secondaryButton(id="analyzing-shaft-btn",value="Analizing...",class="secondary-button-default")}}
+            <div id="shaft-pause-btn" class="p-10 g-10 l-r ai-c">
+                <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9.5 15.5V0.5H13.875V15.5H9.5ZM0.125 15.5V0.5H4.5V15.5H0.125Z" fill="#170200" />
+                </svg>
+            </div>
+        </div>
+        <div id="barEl" class="wf l-r jc-sb g-12">
+            {{progressBar(id="shaft-analysis")}}
+            {{mainButton(id="next-shaft",value="Next phase",class="main-button")}}
+        </div>
+        <div id="analysis-results" class="g-24 l-r">
+            <span class="label-bold"></span>
+        </div>
+
+    </div>
+
+    <div id="development-frame" class="l-c g-24 wf opace" disabled>
+        <div id="development-inner" class="l-c g-16">
+            <h2 class="label-bold">Development</h2>
+            <div id="development-folder-path-frame" class="l-r g-26 ai-c">
+                <h3 class="label-regular">Folder to develop</h3>
+                {{pathField(id="shaft-develop-folder-path",value=session['shaft_develop_folder_path'])}}
+            </div>
+            <div id="shaft-checkboxes" class="l-r g-17 ai-c">
+                {{checkBox(id="shaft-process-subfolders",checked=session['shaft_process_subfolders'])}}
+                <p class="label-regular">Process subfolders</p>
+                {{checkBox(id="shaft-overwrite",checked=session['shaft_overwrite'])}}
+                <p class="label-regular">Do not overwrite existing files</p>
+            </div>
+        </div>
+
+        <div id="shaft-output" class="l-c g-16">
+            <h2 class="label-bold">Output</h2>
+            <div id="shaft-output-format-frame" class="l-r g-24 ai-c">
+                <h3 class="label-regular">Output File Format</h3>
+                {{basic_dropdown(outputFileOpts, optLabel=processFormatLabel, name="shaft_process_format"
+                )}}
+            </div>
+            <div id="shaft-output-path-frame" class="l-r g-24 ai-c">
+                <h3 class="label-regular">Output path</h3>
+                {{pathField(id="shaft-output-path",value=session['shaft_output_path'])}}
+            </div>
+        </div>
+        {{mainButton(id="development-shaft-btn",value="Development",class="main-button")}}
+        <div id="shaft-developing" class="g-24 l-r">
+            {{secondaryButton(id="developing-shaft-btn",value="Developing...",class="secondary-button-default")}}
+            <div id="shaft-pause-dev-btn" class="p-10 g-10 l-r ai-c">
+                <svg width="14" height="16" viewBox="0 0 14 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9.5 15.5V0.5H13.875V15.5H9.5ZM0.125 15.5V0.5H4.5V15.5H0.125Z" fill="#170200" />
+                </svg>
+            </div>
+        </div>
+        <div id="shaft-development-results" class="g-24 l-r">
+            <span>Developed.</span>
+        </div>
+    </div>
+    <div id="shaft-devBar-frame" class="wf l-r jc-sb g-12">
+        {{progressBar(id="shaft-development")}}
+    </div>
+</div>
+{% endblock %}
