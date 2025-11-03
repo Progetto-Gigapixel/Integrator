@@ -1,0 +1,171 @@
+import json
+import os
+
+import numpy as np
+from openpyxl import Workbook, load_workbook
+
+from core.utils.core_utils import linear_2_srgb
+from core.utils.core_utils import ciede2000, rgb_2_lab
+from locales.localization import _
+from log.logger import logger
+
+from .model import ComparisonStep
+
+
+class PatchComparer:
+    def __init__(self, result_file, reference, image_path):
+        """
+        Compares the patches with the target reference.
+
+        :param result_file: The file to save the comparison results
+        :param reference: The reference object for the target reference
+        """
+        self.result_file = result_file
+        self.reference = [reference[str(i)] for i in range(1, len(reference) + 1)]
+        self.comparison_results = {"Corrections": {}}
+        self.image_path = image_path
+
+    def normalize8(self, I):
+        """
+        Normalize the image to 8-bit.
+
+        :param I: The image to normalize
+
+        :return: The normalized image
+        """
+        mn = I.min()
+        mx = I.max()
+        mx -= mn
+        I = ((I - mn) / mx) * 255
+        return I.astype(np.uint8)
+
+    def compare_patches(self, patches):
+        """
+        Compares the patches with the target reference and calculates the ΔE00 values.
+
+        :param patches: The patches to compare
+        """
+        delta_e_sum = 0
+        delta_e_max = 0
+
+        for campione, patch_info in zip(self.reference, patches[0]):
+            position = patch_info["position"]
+            size = patch_info["size"]
+
+            corrected_rgb = patch_info["rgb_values"]
+            reference_rgb = campione
+
+            reference_lab = rgb_2_lab(reference_rgb) #rgb_2_lab(linear_2_srgb(reference_rgb))
+            corrected_lab = rgb_2_lab(corrected_rgb) #rgb_2_lab(linear_2_srgb(corrected_rgb))
+
+            delta_e = ciede2000(reference_lab, corrected_lab, kH=0.99, kC=0.99, kL=0.99)
+
+            comparison_result = {
+                "position": position,
+                "size": size,
+                "correctedRGB": corrected_rgb,
+                "referenceRGB": reference_rgb,
+                "deltaE": delta_e,
+            }
+
+            # Update the sum and max ΔE00 values
+            delta_e_sum += delta_e
+            if delta_e > delta_e_max:
+                delta_e_max = delta_e
+
+            self.add_comparison_result(comparison_result)
+
+        # Calculate the mean and max ΔE00 values
+        delta_e_mean = delta_e_sum / len(patches[0])
+        self.comparison_results["Corrections"][
+            self.current_step
+        ].delta_e_mean = delta_e_mean
+        self.comparison_results["Corrections"][
+            self.current_step
+        ].delta_e_max = delta_e_max
+
+        logger.debug(
+            _("Mean ΔE00 for step {step}: {delta_e_mean:.4f}").format(
+                step=self.current_step, delta_e_mean=delta_e_mean
+            )
+        )
+        return delta_e_mean
+
+    def add_comparison_result(self, comparison_result):
+        """
+        Adds a comparison result to the comparison results.
+
+        :param comparison_result: The comparison result to add
+        """
+        self.comparison_results["Corrections"].setdefault(
+            self.current_step, ComparisonStep()
+        )
+        self.comparison_results["Corrections"][self.current_step].add_patch(
+            comparison_result
+        )
+
+    def save_analytics_to_xls(self):
+        # Load / Create xls
+        xls_file_path = os.path.join(
+            os.path.split(self.result_file)[0], "Analytics.xlsx"
+        )
+        image_filename = os.path.split(self.image_path)[1]
+
+        if os.path.exists(xls_file_path):
+            workbook = load_workbook(xls_file_path)
+            sheet = workbook.active
+            # Find the last row
+            last_row = sheet.max_row
+        else:
+            workbook = Workbook()
+            sheet = workbook.active
+            # Write headers
+            sheet.cell(1, 1, "Image")
+            sheet.cell(1, 2, "Start-time")
+            sheet.cell(1, 3, "End-time")
+            for col, value in enumerate(
+                self.comparison_results["Corrections"].items(), start=1
+            ):
+                de = value[1].delta_e_mean
+                sheet.cell(row=1, column=col + 3, value=de)
+            last_row = 1
+
+        sheet.cell(row=last_row + 1, column=1, value=image_filename)
+        # Write values in the last row of the file
+        for col, values in enumerate(
+            self.comparison_results["Corrections"].items(), start=1
+        ):
+            sheet.cell(row=last_row + 1, column=col + 3, value=values[1].delta_e_mean)
+
+        # Salva le modifiche
+        workbook.save(xls_file_path)
+        workbook.close()
+
+    def save_comparison_results(self):
+        """
+        Saves the comparison results to the result file.
+        """
+        results_to_save = {
+            "Corrections": {
+                step: comparison_step.to_dict()
+                for step, comparison_step in self.comparison_results[
+                    "Corrections"
+                ].items()
+            }
+        }
+
+        with open(self.result_file, "w") as file:
+            json.dump(results_to_save, file, indent=4)
+
+        self.save_analytics_to_xls()
+
+    def run(self, patches, current_step):
+        """
+        Runs the comparison process.
+
+        :param patches: The patches to compare
+        :param current_step: The current step
+        """
+        self.current_step = current_step
+
+        return self.compare_patches(patches)

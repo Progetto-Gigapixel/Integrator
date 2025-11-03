@@ -1,0 +1,25 @@
+2025-10-01 12:29:29 - INFO - Running Analysis Mode...
+2025-10-01 12:29:35 - INFO - Decoding RAW file...
+2025-10-01 12:29:39 - INFO - RAW file decoded successfully.
+2025-10-01 12:29:40 - INFO - Current DE00 at step DecodeRaw: 18.244433164263757
+2025-10-01 12:29:44 - INFO - Applying exposure correction...
+2025-10-01 12:30:31 - INFO - Exposure correction applied.
+2025-10-01 12:30:31 - INFO - Current DE00 at step exposure_correction: 5.862735874056692
+2025-10-01 12:30:35 - INFO - Applying white balance correction
+2025-10-01 12:30:36 - INFO - White balance correction applied successfully
+2025-10-01 12:30:36 - INFO - Current DE00 at step white_balance_correction: 1.0971928250896195
+2025-10-01 12:30:41 - INFO - Applying ridge correction matrix...
+2025-10-01 12:30:42 - INFO - Color correction matrix applied.
+2025-10-01 12:30:42 - INFO - Current DE00 at step ridge_ccm: 1.0157482108438252
+2025-10-01 12:30:46 - INFO - Applying fin color correction matrix...
+2025-10-01 12:30:48 - INFO - Additional color correction matrix applied.
+2025-10-01 12:30:48 - INFO - Current DE00 at step finlayson_ccm: 0.9869361418894305
+2025-10-01 12:30:52 - INFO - Starting WLS correction process...
+2025-10-01 12:30:56 - INFO - WLS correction applied successfully.
+2025-10-01 12:30:56 - INFO - Current DE00 at step wls_correction: 0.9439046843768139
+2025-10-01 12:31:00 - INFO - Starting polynomial fitting correction process...
+2025-10-01 12:31:07 - INFO - Polynomial fitting correction applied successfully.
+2025-10-01 12:31:07 - INFO - Time taken: 7.278744697570801 seconds
+2025-10-01 12:31:07 - INFO - The step polynomial_correction didn't improve DE00. This step will be skipped
+2025-10-01 12:31:07 - INFO - Current DE00 at step polynomial_correction: 0.9439046843768139
+2025-10-01 12:31:28 - INFO - EXIF metadata transferred successfully.

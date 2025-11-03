@@ -1,0 +1,437 @@
+# Translations template for PROJECT.
+# Copyright (C) 2024 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2024-04-30 16:56+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.14.0\n"
+
+#: core/core.py:42
+msgid "Running Analysis Mode..."
+msgstr ""
+
+#: core/core.py:85
+msgid "Analysis Mode completed successfully."
+msgstr ""
+
+#: core/core.py:89
+msgid "Running Development Mode..."
+msgstr ""
+
+#: core/common/equipment/equipment.py:39
+msgid "The file is not a RAW file."
+msgstr ""
+
+#: core/common/equipment/equipment.py:51
+msgid "No EXIF data found."
+msgstr ""
+
+#: core/common/equipment/equipment.py:69
+msgid "Transferring EXIF metadata..."
+msgstr ""
+
+#: core/common/equipment/equipment.py:75
+msgid "EXIF metadata transferred successfully."
+msgstr ""
+
+#: core/common/lensfun_corrector/lensfun_corrector.py:23
+#: core/src/startup_checker/startup_checker.py:25
+msgid "No camera found in the lensfun database."
+msgstr ""
+
+#: core/common/lensfun_corrector/lensfun_corrector.py:28
+#: core/src/startup_checker/startup_checker.py:29
+msgid "No lens found in the lensfun database."
+msgstr ""
+
+#: core/common/organizers/result_organizer.py:39
+msgid "Saving the resulting image..."
+msgstr ""
+
+#: core/common/organizers/result_organizer.py:56
+msgid "Resulting image saved successfully."
+msgstr ""
+
+#: core/src/decode_raw/decode_raw.py:25
+msgid "In 'AM' mode, the input must be a single RAW file."
+msgstr ""
+
+#: core/src/decode_raw/decode_raw.py:27
+msgid "Decoding RAW file..."
+msgstr ""
+
+#: core/src/decode_raw/decode_raw.py:37
+msgid "The specified path is neither a file nor a directory: {input_path}"
+msgstr ""
+
+#: core/src/decode_raw/decode_raw.py:39
+msgid "RAW file decoded successfully."
+msgstr ""
+
+#: core/src/geometric_correction/geometric_correction.py:17
+msgid "Applying geometric correction..."
+msgstr ""
+
+#: core/src/geometric_correction/geometric_correction.py:23
+msgid "Geometric correction applied successfully."
+msgstr ""
+
+#: core/src/geometric_correction/geometric_correction_manual.py:18
+msgid "Applying manual geometric correction..."
+msgstr ""
+
+#: core/src/geometric_correction/geometric_correction_manual.py:57
+msgid "Manual geometric correction applied successfully."
+msgstr ""
+
+#: core/src/vignetting_correction/vignetting_correction.py:15
+msgid "Applying vignetting correction..."
+msgstr ""
+
+#: core/src/vignetting_correction/vignetting_correction.py:22
+msgid "Failed to apply vignetting correction."
+msgstr ""
+
+#: core/src/vignetting_correction/vignetting_correction.py:24
+msgid "Vignetting correction applied successfully."
+msgstr ""
+
+#: ui/cli/cli.py:32
+msgid "The process was interrupted by the user."
+msgstr ""
+
+#: ui/cli/cli.py:34
+msgid "EQUIPMENT: {EE.message}"
+msgstr ""
+
+#: ui/cli/cli.py:36
+msgid "STARTUP CHECKER: {SCE.message}"
+msgstr ""
+
+#: ui/cli/cli.py:38
+msgid "RAW DECODER: {DRE.message}"
+msgstr ""
+
+#: ui/cli/cli.py:40
+msgid "GEOMETRIC CORRECTION: {GCME.message}"
+msgstr ""
+
+#: ui/cli/cli.py:42
+msgid "GEOMETRIC CORRECTOR: {GCE.message}"
+msgstr ""
+
+#: ui/cli/cli.py:44
+msgid "UNEXPECTED ERROR: {e}"
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:22
+msgid "Distortion coefficients collected: {}"
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:23
+msgid "Camera crop factor received: {}"
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:33
+msgid "Do you want to proceed with manual geometric correction? (y/n): "
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:35
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:62
+msgid "y"
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:41
+msgid "Geometric correction skipped."
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:44
+msgid "Error applying manual geometric correction."
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:48
+msgid "Enter the crop factor of your camera (e.g., 1.5): "
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:56
+msgid "Enter coefficient k{} (e.g., -0.01): "
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:61
+msgid "Do you want to include tangential coefficients p1 and p2? (y/n): "
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:65
+msgid "Enter coefficient p{} (e.g., 0.001): "
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:68
+msgid "Tangential coefficients p1 and p2 will be set to 0.0."
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:82
+msgid "Please enter a positive value."
+msgstr ""
+
+#: ui/cli/common/cli_geometric_correction_manual/cli_geometric_correction_manual.py:86
+msgid "Invalid value. Please enter a valid value of type {}."
+msgstr ""
+
+#: ui/cli/common/custom_help_formatter/custom_help_formatter.py:16
+msgid " [Default: {default}]"
+msgstr ""
+
+#: ui/cli/common/custom_help_formatter/custom_help_formatter.py:17
+msgid " [Choices: {choices}]"
+msgstr ""
+
+#: ui/cli/common/custom_help_formatter/custom_help_formatter.py:19
+msgid "Parameter: {opts_long} ({opts}){default}"
+msgstr ""
+
+#: ui/cli/common/custom_help_formatter/custom_help_formatter.py:20
+msgid "Argument: {arg_fmt}{choices}"
+msgstr ""
+
+#: ui/cli/common/custom_help_formatter/custom_help_formatter.py:45
+msgid "Description: {original_help}"
+msgstr ""
+
+#: ui/gui/main_window.py:33
+msgid "Cocoa - Color Correction"
+msgstr ""
+
+#: ui/gui/main_window.py:71
+msgid "Analysis (AM)"
+msgstr ""
+
+#: ui/gui/main_window.py:72
+msgid "Development (DM)"
+msgstr ""
+
+#: ui/gui/main_window.py:73
+msgid "Batch (B)"
+msgstr ""
+
+#: ui/gui/main_window.py:230 ui/gui/pages/analise_mode.py:41
+msgid "Analysis Mode"
+msgstr ""
+
+#: ui/gui/main_window.py:233 ui/gui/pages/development_mode.py:36
+msgid "Development Mode"
+msgstr ""
+
+#: ui/gui/main_window.py:236
+msgid "Batch Processing"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:14
+msgid "Lensfunpy Database Data Entry"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:26
+msgid "Geometric Correction Data"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:35
+msgid "Distortion Model:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:42
+msgid "Vignetting Correction Data"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:54
+msgid "Distance:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:55 ui/gui/common/lensfunpy_dialog.py:127
+msgid "Coefficient k1:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:56 ui/gui/common/lensfunpy_dialog.py:131
+msgid "Coefficient k2:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:57
+msgid "Coefficient k3:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:74
+msgid "Camera Data"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:84 ui/gui/common/lensfunpy_dialog.py:106
+msgid "Maker:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:85 ui/gui/common/lensfunpy_dialog.py:107
+msgid "Model:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:86 ui/gui/common/lensfunpy_dialog.py:108
+msgid "Mount:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:87 ui/gui/common/lensfunpy_dialog.py:109
+msgid "Crop Factor:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:90
+msgid "Lens Data"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:123
+msgid "Focal Length:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:137
+msgid "Coefficient a:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:138
+msgid "Coefficient b:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:139
+msgid "Coefficient c:"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:144
+msgid "Save"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:146 ui/gui/pages/analise_mode.py:98
+msgid "Cancel"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:194 ui/gui/common/lensfunpy_dialog.py:204
+#: ui/gui/common/lensfunpy_dialog.py:211 ui/gui/common/lensfunpy_dialog.py:220
+#: ui/gui/common/lensfunpy_dialog.py:231
+msgid "Error"
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:194 ui/gui/common/lensfunpy_dialog.py:231
+msgid "Please enter all the required fields."
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:204
+msgid "Please enter the focal length and k1 coefficient."
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:211
+msgid "Please enter the focal length, k1 and k2 coefficients."
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:220
+msgid "Please enter the focal length and all the coefficients."
+msgstr ""
+
+#: ui/gui/common/lensfunpy_dialog.py:248
+msgid "Success"
+msgstr ""
+
+#: ui/gui/pages/analise_mode.py:36
+msgid "Select File"
+msgstr ""
+
+#: ui/gui/pages/analise_mode.py:43
+msgid "Analyze Color Checker"
+msgstr ""
+
+#: ui/gui/pages/analise_mode.py:51
+msgid "Select RAW File"
+msgstr ""
+
+#: ui/gui/pages/analise_mode.py:80
+msgid "Would you like to add the missing data?"
+msgstr ""
+
+#: ui/gui/pages/analise_mode.py:81
+msgid "Start"
+msgstr ""
+
+#: ui/gui/pages/analise_mode.py:81
+msgid "Skip"
+msgstr ""
+
+#: ui/gui/pages/analise_mode.py:90
+msgid "Analysis mode canceled by the user."
+msgstr ""
+
+#: ui/gui/pages/analise_mode.py:98
+msgid "Select Color Checker Manually"
+msgstr ""
+
+#: ui/gui/pages/analise_mode.py:118 ui/gui/pages/analise_mode.py:120
+msgid "Warning!"
+msgstr ""
+
+#: ui/gui/pages/batch_mode.py:16
+msgid "Select main folder"
+msgstr ""
+
+#: ui/gui/pages/batch_mode.py:18 ui/gui/pages/batch_mode.py:26
+#: ui/gui/pages/batch_mode.py:64
+msgid "Browse..."
+msgstr ""
+
+#: ui/gui/pages/batch_mode.py:24
+msgid "Select destination folder"
+msgstr ""
+
+#: ui/gui/pages/batch_mode.py:38
+msgid "Batch Mode"
+msgstr ""
+
+#: ui/gui/pages/batch_mode.py:49 ui/gui/pages/development_mode.py:44
+msgid "Start Processing"
+msgstr ""
+
+#: ui/gui/pages/batch_mode.py:70
+msgid "Select Main Folder"
+msgstr ""
+
+#: ui/gui/pages/batch_mode.py:75
+msgid "Select Destination Folder"
+msgstr ""
+
+#: ui/gui/pages/batch_mode.py:87
+msgid "The batch processing has started. Please wait..."
+msgstr ""
+
+#: ui/gui/pages/batch_mode.py:96 ui/gui/pages/batch_mode.py:102
+msgid "Batch processing is complete."
+msgstr ""
+
+#: ui/gui/pages/development_mode.py:15
+msgid "No correction file selected"
+msgstr ""
+
+#: ui/gui/pages/development_mode.py:16 ui/gui/pages/development_mode.py:51
+msgid "Select Correction File"
+msgstr ""
+
+#: ui/gui/pages/development_mode.py:21
+msgid "No folder selected"
+msgstr ""
+
+#: ui/gui/pages/development_mode.py:22
+msgid "Select RAW Images Folder"
+msgstr ""
+
+#: ui/gui/pages/development_mode.py:56
+msgid "Select Folder Containing RAW Images"
+msgstr ""
+

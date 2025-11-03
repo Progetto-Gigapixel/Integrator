@@ -13,7 +13,8 @@ from colormath.color_diff import delta_e_cie2000
 
 from log.logger import logger
 from utils.utils import read_config, find_project_root
-
+import threading
+_colour_lock = threading.Lock()
 
 def ciede2000(lab1, lab2, kL=1, kC=1, kH=1):
     """
@@ -358,37 +359,41 @@ def linear_2_srgb(linear):
 
 def XYZ_2_srgb(xyz, illuminant="d65"):
     # converte l'illuminante
-    if illuminant == "d50":
-        xyz = colour.adaptation.chromatic_adaptation(
+    with _colour_lock:
+        if illuminant == "d50":
+            xyz = colour.adaptation.chromatic_adaptation(
+                xyz,
+                colour.CCS_ILLUMINANTS["CIE_10_1964"]["D50"],
+                colour.CCS_ILLUMINANTS["CIE_10_1964"]["D65"],
+                method="Bradford"
+            )
+        rgb_linear = colour.XYZ_to_RGB(
             xyz,
-            colour.CCS_ILLUMINANTS["CIE_10_1964"]["D50"],
-            colour.CCS_ILLUMINANTS["CIE_10_1964"]["D65"],
-            method="Bradford"
+            colour.CCS_ILLUMINANTS["CIE_10_1964"]["D65"],  # source white
+            colour.CCS_ILLUMINANTS["CIE_10_1964"]["D65"],  # target white (sRGB)
+            colour.RGB_COLOURSPACES["sRGB"].matrix_XYZ_to_RGB
         )
-    rgb_linear = colour.XYZ_to_RGB(
-        xyz,
-        colour.CCS_ILLUMINANTS["CIE_10_1964"]["D65"],  # source white
-        colour.CCS_ILLUMINANTS["CIE_10_1964"]["D65"],  # target white (sRGB)
-        colour.RGB_COLOURSPACES["sRGB"].matrix_XYZ_to_RGB
-    )
-    rgb_srgb = colour.cctf_encoding(rgb_linear, function='sRGB')
+        rgb_srgb = colour.cctf_encoding(rgb_linear, function='sRGB')
     return rgb_srgb
 
 def xyz_2_hsv(xyz, illuminant="d65"):
     # 1. XYZ → RGB lineare (sRGB, D65)
-    if illuminant == "d50":
-        xyz = colour.adaptation.chromatic_adaptation(
+    xyz = np.ascontiguousarray(xyz, dtype=np.float32)
+
+    with _colour_lock:
+        if illuminant == "d50":
+            xyz = colour.adaptation.chromatic_adaptation(
+                xyz,
+                colour.CCS_ILLUMINANTS["CIE_10_1964"]["D50"],
+                colour.CCS_ILLUMINANTS["CIE_10_1964"]["D65"],
+                method="Bradford"
+            )
+        rgb_lin = colour.XYZ_to_RGB(
             xyz,
-            colour.CCS_ILLUMINANTS["CIE_10_1964"]["D50"],
-            colour.CCS_ILLUMINANTS["CIE_10_1964"]["D65"],
-            method="Bradford"
+            colour.CCS_ILLUMINANTS['CIE_10_1964']['D65'],
+            colour.CCS_ILLUMINANTS['CIE_10_1964']['D65'],
+            colour.RGB_COLOURSPACES['sRGB'].matrix_XYZ_to_RGB
         )
-    rgb_lin = colour.XYZ_to_RGB(
-        xyz,
-        colour.CCS_ILLUMINANTS['CIE_10_1964']['D65'],
-        colour.CCS_ILLUMINANTS['CIE_10_1964']['D65'],
-        colour.RGB_COLOURSPACES['sRGB'].matrix_XYZ_to_RGB
-    )
 
     # 2. Lineare → sRGB
     rgb = colour.cctf_encoding(rgb_lin)

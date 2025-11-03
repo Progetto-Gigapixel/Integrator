@@ -20,7 +20,7 @@ from PIL import Image, ImageCms,ImageOps
 from core.photometric_stereo import PhotometricStereo
 from core.photostereo import photometry
 from utils.image_processing import lay_normals
-from utils.depth_estimation import remove_bow_effect, depth_from_gradient_poisson, depth_from_gradient_torch
+from utils.depth_estimation import remove_bow_effect, depth_from_gradient_poisson, depth_from_gradient_poisson_cupy_tiled
 from utils.math_utils import check_bit_depth, check_decimation
 from utils.image_processing import specularize_x
 from utils.exif_tools import add_exif
@@ -443,8 +443,18 @@ def compute_maps_step(config, normals, albedo, step, progress_callback=None):
             if 'output_directory' in config:
 
                 print("Computing depth map with Poisson solver", flush=True)
-                Z = depth_from_gradient_poisson(normals)
-                #Z = depth_from_gradient_torch(normals, device='cuda') # out of memory
+                # Check if GPU is available Do not use torch, use cupy
+                if config['use_gpu']:
+                    print("Using GPU for depth estimation", flush=True)
+                    try:
+                        Z = depth_from_gradient_poisson_cupy_tiled(normals)
+                    except Exception as e:
+                        print(f"Error using GPU", flush=True)
+                        print("Falling back to CPU for depth estimation", flush=True)   
+                        Z = depth_from_gradient_poisson(normals)
+                else:
+                    print("Using CPU for depth estimation", flush=True)
+                    Z = depth_from_gradient_poisson(normals)
                 Z -= np.min(Z)
 
                 print("Computing vertices and faces from the depth map", flush=True)
@@ -864,7 +874,19 @@ def write_albedo_tiff(config, all_lights_on_image, rho):
     # Clip and normalize the albedo
     # and get it as the L channel
     #L_rho = np.array(np.clip((rho / (np.mean(rho) * 2.0)), 0, 1)) * 100
-    L_rho = np.array(np.clip((rho / np.max(rho)), 0, 1)) * 100
+    #L_rho = np.array(np.clip((rho / np.max(rho)), 0, 1)) * 100 # Da Raffaelli, immagini scure
+    
+    #calcolo lo l mediana di all lights
+    median_L_all_lights = np.median(all_lights_lab[:, :, 0])
+
+    L_rho = np.array(rho) * 100
+    # Calcola la media corrente di L_rho
+    median_L_rho = np.median(L_rho)
+
+    # Faccio in modo che L_rho abbia la stessa mediana di L_all lights
+    L_rho = L_rho - median_L_rho + median_L_all_lights
+    L_rho = np.clip(L_rho,0,100)
+    
     # a and b channels are from the fully lit image
     a_all_lights = np.array(all_lights_lab[:, :, 1])
     b_all_lights = np.array(all_lights_lab[:, :, 2])

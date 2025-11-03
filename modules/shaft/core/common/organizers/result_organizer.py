@@ -10,7 +10,46 @@ from core.utils.core_utils import linear_to_adobe_rgb, linear_to_prophoto, XYZ_2
 from locales.localization import _
 from log.logger import logger, memory_handler
 from utils.utils import read_config, convert_numpy_to_list, find_project_root
+import threading
 
+_pil_lock = threading.Lock()
+
+
+def safe_image_fromarray(arr):
+    """
+    Garantisce contiguità, dtype compatibile e copia per evitare segfault.
+    Restituisce una PIL.Image.
+    """
+    if not isinstance(arr, np.ndarray):
+        raise TypeError("expected numpy.ndarray")
+
+    # rendi l'array contiguo (C-contiguous)
+    arr = np.ascontiguousarray(arr)
+
+    # normalizza dtype: PIL si aspetta uint8 per RGB/L convenzionale
+    if arr.dtype != np.uint8:
+        try:
+            arr = arr.astype(np.uint8, copy=False)
+        except Exception:
+            arr = arr.astype(np.uint8)
+
+    # fai una copia esplicita per evitare shared-buffer issues
+    arr_copy = arr.copy()
+
+    # scegli mode in base a shape
+    if arr_copy.ndim == 2:
+        mode = "L"
+    elif arr_copy.ndim == 3 and arr_copy.shape[2] == 3:
+        mode = "RGB"
+    elif arr_copy.ndim == 3 and arr_copy.shape[2] == 4:
+        mode = "RGBA"
+    else:
+        raise ValueError(f"unsupported array shape {arr_copy.shape}")
+
+    # creazione dentro lock per sicurezza multithread (Pillow non è sempre thread-safe)
+    with _pil_lock:
+        img = Image.fromarray(arr_copy, mode=mode)
+    return img
 
 # Class to organize the results
 class ResultOrganizer:
@@ -138,6 +177,12 @@ class ResultOrganizer:
 
         return self.output_file
 
+    import numpy as np
+    from PIL import Image
+    import threading
+
+     # globale nel modulo
+
     def _save_image(self, img, path, icc_profile_path, format="TIFF"):
         """
         Saves the image to the specified path.
@@ -157,6 +202,7 @@ class ResultOrganizer:
         scaling_factor = 255
         img = np.round(np.clip(img, 0.0, 1.0) * scaling_factor).astype(np.uint8)
         img_pil = Image.fromarray(img, "RGB")
+        img_pil = safe_image_fromarray(img)
         img_pil.save(
             path, format=format, compression="tiff_lzw", icc_profile=icc_profile
         )

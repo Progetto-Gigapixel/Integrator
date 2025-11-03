@@ -6,9 +6,11 @@ from locales.localization import _
 from ui.cli.common.cli_parser.cli_parser import CliParser
 from ui.process_threads.worker_thread import WorkerThread
 from utils.utils import spacer
-import concurrent
+import concurrent.futures
 import os, psutil
 from log.logger import logger
+import traceback
+import multiprocessing
 
 
 
@@ -100,22 +102,29 @@ class CliHandler:
         else:
             # Find the images to process
             images = find_files_by_format(input_directory, self.args.extension, self.args.process_subfolder)
+
+            if not images:
+                logger.warning(_("No images found to process"))
+                return
+
             # Prende il peso della prima immagine per avere una valutazione sommaria della possibilità di processare in ram
             image_file_size = _get_file_size_kb(images[0])
-            # Crea un pool di thread
-            threads = []
-            max_threads = os.cpu_count()  # Usa il numero di CPU disponibili
-            ram = psutil.virtual_memory().free
-            max_ram = ram // image_file_size // 12
 
-            max_workers = min(max_threads, max_ram)
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = []
+            # Calcola il numero massimo di worker
+            max_threads = os.cpu_count() or 4  # Default a 4 se cpu_count() ritorna None
+            ram = psutil.virtual_memory().available
+            # Stima più conservativa: assume 12x dimensione file per processo
+            max_ram_workers = max(1, ram // (image_file_size * 12))
+            # Limita a 7 worker per evitare overhead eccessivo
+            max_workers = min(max_threads, max_ram_workers, 7)
 
+            logger.info(_(f"Processing {len(images)} images with {max_workers} workers"))
 
-                for input_file in images:
-
-                    core_thread = Core(
+            # Usa ProcessPoolExecutor per isolamento memoria completo
+            with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+                # Prepara gli argomenti per ogni processo
+                process_args = [
+                    (
                         input_file,
                         output_format,
                         input_white_field,
@@ -128,22 +137,33 @@ class CliHandler:
                         development_params,
                         process_cropped_image_only
                     )
+                    for input_file in images
+                ]
 
-                    # Sottometti il task al thread pool
-                    future = executor.submit(self._process_single_file, core_thread)
-                    futures.append(future)
+                # Sottometti i task al process pool
+                futures = {
+                    executor.submit(_process_single_file_static, args): args[0]
+                    for args in process_args
+                }
 
-                # Gestisci i risultati man mano che vengono completati
-                for future in concurrent.futures.as_completed(futures):
+                # Gestisci i risultati man mano che vengono completati con timeout
+                completed = 0
+                for future in concurrent.futures.as_completed(futures, timeout=3600):
+                    input_file = futures[future]
                     try:
-                        result = future.result()
+                        result = future.result(timeout=600)  # 10 minuti timeout per singolo file
+                        completed += 1
                         if result.get("status") == "error":
-                            logger.error(f"Error  {result['path']}: {result['error']}")
+                            logger.error(f"Error processing {result['path']}: {result['error']}")
+                        else:
+                            logger.info(f"Successfully processed {result['path']} ({completed}/{len(images)})")
+                    except concurrent.futures.TimeoutError:
+                        logger.error(f"Timeout processing {input_file}")
                     except Exception as e:
-                        logger.error(f"Error executing thread: {str(e)}")
+                        logger.error(f"Error executing process for {input_file}: {str(e)}\n{traceback.format_exc()}")
 
     def _process_single_file(self, core_thread):
-        """Processa un singolo file utilizzando un CoreThread dedicato"""
+        """Processa un singolo file utilizzando un CoreThread dedicato (deprecato, usa _process_single_file_static)"""
         try:
             core_thread.development_mode(Mode.DEVELOPMENT)
             return {"status": "success", "path": core_thread.input_path}
@@ -155,8 +175,58 @@ class CliHandler:
             }
 
 
+def _process_single_file_static(args):
+    """
+    Funzione statica per processare un singolo file in un processo separato.
+    Richiede funzione statica per essere serializzabile con pickle (ProcessPoolExecutor).
+    """
+    (
+        input_file,
+        output_format,
+        input_white_field,
+        output_path,
+        skip_params,
+        output_color_space,
+        fitting_degree,
+        raw_therapee_sharpen,
+        raw_therapee_light_balance,
+        development_params,
+        process_cropped_image_only
+    ) = args
+
+    try:
+        # Crea una nuova istanza Core per questo processo
+        core_instance = Core(
+            input_file,
+            output_format,
+            input_white_field,
+            output_path,
+            skip_params,
+            output_color_space,
+            fitting_degree,
+            raw_therapee_sharpen,
+            raw_therapee_light_balance,
+            development_params,
+            process_cropped_image_only
+        )
+
+        # Esegui il processing
+        core_instance.development_mode(Mode.DEVELOPMENT)
+
+        return {"status": "success", "path": input_file}
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "path": input_file,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+
 
 if __name__ == "__main__":
+    # Necessario per ProcessPoolExecutor su Windows
+    multiprocessing.freeze_support()
     import sys
     cli_handler = CliHandler(sys.argv)
     cli_handler.run()

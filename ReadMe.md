@@ -125,6 +125,8 @@ IMAGEMATCHER_VENV_PYTHON_PATH=...
 # activate the venv
 python -m venv envs\venv
 envs\venv\Script\activate
+pip install -r requirements.txt
+
 python setup.py
 ```
 

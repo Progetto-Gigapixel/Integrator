@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<lensdatabase version="1">
+    <lens>
+        <maker>Hasselblad</maker>
+        <model>XCD 120</model>
+        <mount>Hasselblad X</mount>
+        <cropfactor>1.5</cropfactor>
+        <calibration>
+            <distortion model="poly3" focal="120" k1="-0.002" />
+            <vignetting model="pa" focal="120" k1="-0.002" k2="0.02" k3="0.006" distance="0.5" aperture="4" />
+        </calibration>
+    </lens>
+    <camera>
+        <maker>Hasselblad</maker>
+        <model>Hasselblad X2D 100C</model>
+        <mount>Hasselblad X</mount>
+        <cropfactor>1.5</cropfactor>
+    </camera>
+</lensdatabase>

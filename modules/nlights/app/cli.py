@@ -6,6 +6,7 @@ import os
 
 import click
 import configparser
+from cupy.cuda import is_available
 
 # Crea l'oggetto ConfigParser
 configIni = configparser.ConfigParser()
@@ -75,8 +76,10 @@ config = {
     'image_downsample': False,
     'normal_map': None,
     'depth_map': None,
-    'albedo': None
+    'albedo': None,
+    'use_gpu': is_available(),
     }
+
 
 
     

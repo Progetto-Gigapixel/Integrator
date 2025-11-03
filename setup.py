@@ -46,8 +46,16 @@ def create_venv(df=None):
 def check_venv():
     """Check if running inside a virtual environment."""
     if not hasattr(sys, 'real_prefix') and sys.prefix == sys.base_prefix:
-        print("Error: You are not inside a virtual environment (venv).")
-        sys.exit(1)
+        # Try activate the base environment
+        venv_path = os.path.join(basedir, "envs", "venv")
+        if platform.system() == "Windows":
+            activate_cmd = f"{venv_path}\\Scripts\\activate.bat "
+        else:
+            activate_cmd = f"source {venv_path}/bin/activate "
+        run_command(activate_cmd)
+        if not hasattr(sys, 'real_prefix') and sys.prefix == sys.base_prefix:
+            print("Error: Failed to activate virtual environment.")
+            sys.exit(1)
 
 
 def load_module_directory(req_dir_var,df=None):
@@ -81,9 +89,10 @@ def create_env(env_name, req_dir_var,df=None):
     
     os.makedirs("envs", exist_ok=True)
     
-    # Use specific Python executable if needed
-    #python_exe = "python3.10" if env_name.lower() == "shaft" else "python"
-    python_exe="python.exe"
+    if platform.system() != "Windows":
+        python_exe="python3"
+    else:
+        python_exe="python.exe"
     try:
         run_command(f"{python_exe} -m venv {venv_path}")
         
@@ -91,9 +100,9 @@ def create_env(env_name, req_dir_var,df=None):
             activate_cmd = f"{venv_path}\\Scripts\\activate.bat && "
         else:
             activate_cmd = f"source {venv_path}/bin/activate && "
-        
-        run_command(f"{activate_cmd} python -m pip install --upgrade pip setuptools wheel")
-        
+
+        run_command(f"{activate_cmd} {python_exe} -m pip install --upgrade pip setuptools wheel")
+
         # Install requirements one by one for better error handling
         requirements_file = os.path.join(req_dir, "requirements.txt")
         if os.path.exists(requirements_file):
@@ -138,7 +147,7 @@ try:
     config.update_value ("app","UNITY_EXE_PATH","")
     #config.json with texturing
     config.update_value("imagematcher","IMAGEMATCHER_TEXTURING_PATH", os.path.join(basedir,"modules", "imagematcher","mvs-texturing"))
-    config.update_value("imagematcher","IMAGEMATCHER_TEXTURING_SCRIPT",os.path.join(basedir,"modules", "imagematcher","runTexturing.sh"))
+    config.update_value("imagematcher","IMAGEMATCHER_TEXTURING_SCRIPT",os.path.join(basedir,"modules", "imagematcher","runTexturing.bat"))
     config.update_value("imagematcher","IMAGEMATCHER_TEXTURING_EXECUTABLE",os.path.join(basedir,"modules", "imagematcher","mvs-texturing","build","apps","texrecon","texrecon"))
     
     

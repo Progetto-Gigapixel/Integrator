@@ -56,9 +56,6 @@ setattr(np, "asscalar", lambda a: a.item())
 
 
 class Core:
-    parent_ref = None
-    result_organizer = None
-
     def __init__(
         self,
         input_path,
@@ -74,6 +71,8 @@ class Core:
         process_cropped_image_only = True,
 
     ):
+        self.parent_ref = None
+        self.result_organizer = None
         self.result_image = None
         self.original_image = None
         self.cropped_image = None
@@ -115,11 +114,15 @@ class Core:
             self.output_path = output_path
 
         #  XML-RPC server client connection
-        server_host = get_config("settings", "server_host")
-        server_port = get_config("settings", "server_port")
-        self.server_proxy = xmlrpc.client.ServerProxy(
-            f"http://{server_host}:{server_port}", allow_none=True
-        )
+        try:
+            server_host = get_config("settings", "server_host")
+            server_port = get_config("settings", "server_port")
+            self.server_proxy = xmlrpc.client.ServerProxy(
+                f"http://{server_host}:{server_port}", allow_none=True
+            )
+        except Exception as e:
+            logger.warning(f"Failed to connect to server: {e}. Server notifications will be disabled.")
+            self.server_proxy = None
 
         # Patches
         self.measured_patches = np.zeros((24, 3))
@@ -166,7 +169,11 @@ class Core:
 
     def notify_server(self, step_name, status, result=None):
         """Notifies the server of the event and passes relevant data."""
-        self.server_proxy.set_step_result(step_name, status, result)
+        if self.server_proxy is not None:
+            try:
+                self.server_proxy.set_step_result(step_name, status, result)
+            except Exception as e:
+                logger.debug(f"Failed to notify server for step {step_name}: {e}")
 
     def handle_manual_corrections(self):
         current_step = appStore.get(AnalysisSteps.KEY)
@@ -642,8 +649,16 @@ class Core:
         :param step: Nome dello step corrente.
         :param mode: Modalità di esecuzione.
         """
+        if self.server_proxy is None:
+            logger.debug("Server proxy not available, skipping plugin execution")
+            return
+
         # Ottieni la lista dei plugin disponibili
-        plugins: dict = self.server_proxy.list_plugins()
+        try:
+            plugins: dict = self.server_proxy.list_plugins()
+        except Exception as e:
+            logger.warning(f"Failed to list plugins: {e}")
+            return
 
         params = {
             "param1": "test1",
@@ -734,8 +749,16 @@ class Core:
         :param method_name: Nome del metodo da eseguire.
         :param params: Dizionario contenente i parametri.
         """
+        if self.server_proxy is None:
+            logger.warning("Server proxy not available, cannot execute remote function")
+            return None
+
         # Richiedi il codice della funzione al server
-        response = self.server_proxy.get_function_code(plugin_name, method_name)
+        try:
+            response = self.server_proxy.get_function_code(plugin_name, method_name)
+        except Exception as e:
+            logger.error(f"Failed to get function code for {plugin_name}.{method_name}: {e}")
+            return None
         if "error" in response:
             raise Exception(response["error"])
 
