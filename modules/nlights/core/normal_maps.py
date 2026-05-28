@@ -32,6 +32,8 @@ from skimage.color import rgb2lab, lab2rgb
 from skimage.color import rgb2gray
 from skimage.exposure import rescale_intensity
 
+import cupy as cp
+
 Image.MAX_IMAGE_PIXELS = None #Per evitare i warnings di pil
 
 
@@ -446,12 +448,7 @@ def compute_maps_step(config, normals, albedo, step, progress_callback=None):
                 # Check if GPU is available Do not use torch, use cupy
                 if config['use_gpu']:
                     print("Using GPU for depth estimation", flush=True)
-                    try:
-                        Z = depth_from_gradient_poisson_cupy_tiled(normals)
-                    except Exception as e:
-                        print(f"Error using GPU", flush=True)
-                        print("Falling back to CPU for depth estimation", flush=True)   
-                        Z = depth_from_gradient_poisson(normals)
+                    Z = depth_from_gradient_poisson_cupy_tiled(normals)
                 else:
                     print("Using CPU for depth estimation", flush=True)
                     Z = depth_from_gradient_poisson(normals)
@@ -584,7 +581,8 @@ def write_normals(normals_rgb, output_path, config):
 
     # Create directory if it doesn't exist
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    
+    if not os.path.exists(output_path):
+        raise FileNotFoundError(f"Output directory {output_path} does not exist and could not be created. Try to create it manually")
     # Save image
     #rgb_path_out = os.path.join(output_path, f"{image_name}-PolynomialCorrectedNormals-RGB.png")
     #cv2.imwrite(rgb_path_out, cv2.cvtColor(normals_rgb, cv2.COLOR_RGB2BGR))
@@ -874,19 +872,7 @@ def write_albedo_tiff(config, all_lights_on_image, rho):
     # Clip and normalize the albedo
     # and get it as the L channel
     #L_rho = np.array(np.clip((rho / (np.mean(rho) * 2.0)), 0, 1)) * 100
-    #L_rho = np.array(np.clip((rho / np.max(rho)), 0, 1)) * 100 # Da Raffaelli, immagini scure
-    
-    #calcolo lo l mediana di all lights
-    median_L_all_lights = np.median(all_lights_lab[:, :, 0])
-
-    L_rho = np.array(rho) * 100
-    # Calcola la media corrente di L_rho
-    median_L_rho = np.median(L_rho)
-
-    # Faccio in modo che L_rho abbia la stessa mediana di L_all lights
-    L_rho = L_rho - median_L_rho + median_L_all_lights
-    L_rho = np.clip(L_rho,0,100)
-    
+    L_rho = np.array(np.clip((rho / np.max(rho)), 0, 1)) * 100
     # a and b channels are from the fully lit image
     a_all_lights = np.array(all_lights_lab[:, :, 1])
     b_all_lights = np.array(all_lights_lab[:, :, 2])

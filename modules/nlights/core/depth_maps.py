@@ -4,9 +4,14 @@ Python implementation of DepthFromGradient.m
 """
 
 import numpy as np
+# import scipy
 from scipy import sparse
-from scipy.sparse.linalg import spsolve
-
+from scipy.sparse.linalg import spsolve as spsolve_scipy
+import numba as nb
+from scipy import sparse as sp
+import cupy as cp
+from cupyx.scipy import sparse as csp
+from cupyx.scipy.sparse.linalg import spsolve as spsolve_cuda
 
 def compute_depth_maps(normal_map, mask=None, method='poisson', progress_callback=None):
     """
@@ -47,6 +52,12 @@ def compute_depth_maps(normal_map, mask=None, method='poisson', progress_callbac
         depth_map = depth_from_gradient_frankot(p, q, mask, progress_callback)
     elif method == 'direct':
         depth_map = depth_from_gradient_direct(p, q, mask, progress_callback)
+    elif method == 'fullcuda':
+        depth_map = depth_from_gradient_poisson_fullcuda(p, q, mask, progress_callback)
+    elif method == 'hybrid':
+        depth_map = depth_from_gradient_poisson_hybrid(p, q, mask, progress_callback)
+    elif method == 'vectorized':
+        depth_map = depth_from_gradient_poisson_vectorized(p, q, mask, progress_callback)
     else:
         raise ValueError(f"Unknown depth reconstruction method: {method}")
     
@@ -157,7 +168,7 @@ def depth_from_gradient_poisson(p, q, mask=None, progress_callback=None):
     b = divergence[mask]
     
     # Solve the linear system
-    z_values = spsolve(laplacian, b)
+    z_values = spsolve_scipy(laplacian, b)
     
     if progress_callback:
         progress_callback(90)
@@ -168,6 +179,368 @@ def depth_from_gradient_poisson(p, q, mask=None, progress_callback=None):
     
     return z
 
+def depth_from_gradient_poisson_vectorized(p, q, mask=None, progress_callback=None):
+    """
+    Reconstruct depth map from gradient fields using Poisson integration and vectorization.
+    This is a vectorized version of the Poisson integration method, running on CPU.
+    Parameters
+    ----------
+    p : ndarray
+        Gradient in x direction, shape (height, width)
+    q : ndarray
+        Gradient in y direction, shape (height, width)
+    mask : ndarray, optional
+        Binary mask of valid pixels, shape (height, width)
+    progress_callback : function, optional
+        Function to call with progress updates (0-100)
+        
+    Returns
+    -------
+    ndarray
+        Depth map, shape (height, width)
+    """
+    height, width = p.shape
+
+    if mask is None:
+        mask = np.ones((height, width), dtype=bool)
+
+    if progress_callback:
+        progress_callback(20)
+
+    pixel_indices = -np.ones((height, width), dtype=np.int32)
+    valid_pixels = np.where(mask)
+    num_valid_pixels = len(valid_pixels[0])
+    pixel_indices[valid_pixels] = np.arange(num_valid_pixels, dtype=np.int32)
+
+    # Divergence
+    divergence = np.zeros((height, width), dtype=np.float32)
+    divergence[:, 1:-1] += (p[:, 2:] - p[:, :-2]) * 0.5
+    divergence[1:-1, :] += (q[2:, :] - q[:-2, :]) * 0.5
+
+    if progress_callback:
+        progress_callback(50)
+
+    # Build Laplacian on CPU with Numba
+        
+    # Vettorializzazione della costruzione della matrice Laplaciana
+    row_indices = []
+    col_indices = []
+    values = []
+
+    # Aggiungi le voci per i vicini a destra
+    right_mask = np.zeros_like(mask)
+    right_mask[:, :-1] = mask[:, 1:]
+    valid_right_neighbors = mask & right_mask
+    rows, cols = np.where(valid_right_neighbors)
+    row_indices.extend(pixel_indices[rows, cols].tolist())
+    col_indices.extend(pixel_indices[rows, cols + 1].tolist())
+    values.extend([-1.0] * len(rows))
+
+    # Aggiungi le voci per i vicini a sinistra
+    left_mask = np.zeros_like(mask)
+    left_mask[:, 1:] = mask[:, :-1]
+    valid_left_neighbors = mask & left_mask
+    rows, cols = np.where(valid_left_neighbors)
+    row_indices.extend(pixel_indices[rows, cols].tolist())
+    col_indices.extend(pixel_indices[rows, cols - 1].tolist())
+    values.extend([-1.0] * len(rows))
+
+    # Aggiungi le voci per i vicini sopra
+    up_mask = np.zeros_like(mask)
+    up_mask[1:, :] = mask[:-1, :]
+    valid_up_neighbors = mask & up_mask
+    rows, cols = np.where(valid_up_neighbors)
+    row_indices.extend(pixel_indices[rows, cols].tolist())
+    col_indices.extend(pixel_indices[rows - 1, cols].tolist())
+    values.extend([-1.0] * len(rows))
+
+    # Aggiungi le voci per i vicini sotto
+    down_mask = np.zeros_like(mask)
+    down_mask[:-1, :] = mask[1:, :]
+    valid_down_neighbors = mask & down_mask
+    rows, cols = np.where(valid_down_neighbors)
+    row_indices.extend(pixel_indices[rows, cols].tolist())
+    col_indices.extend(pixel_indices[rows + 1, cols].tolist())
+    values.extend([-1.0] * len(rows))
+    
+    # Calcola il numero di vicini validi per ogni pixel e aggiungi le voci diagonali
+    num_neighbors = (valid_right_neighbors + valid_left_neighbors + valid_up_neighbors + valid_down_neighbors)
+    row_indices.extend(pixel_indices[mask].tolist())
+    col_indices.extend(pixel_indices[mask].tolist())
+    values.extend(num_neighbors[mask].tolist())
+
+    laplacian = sparse.coo_matrix((values, (row_indices, col_indices)),
+                                  shape=(num_valid_pixels, num_valid_pixels)).tocsr()
+    
+    b_cpu = divergence[mask].astype(np.float32)
+
+    if progress_callback:
+        progress_callback(70)
+    
+    laplacian = sparse.coo_matrix((values, (row_indices, col_indices)),
+                                  shape=(num_valid_pixels, num_valid_pixels)).tocsr()
+    
+    b_cpu = divergence[mask].astype(np.float32)
+
+    if progress_callback:
+        progress_callback(70)
+
+    # Right-hand side: divergence for all valid pixels
+    b = divergence[mask]
+    
+    # Solve the linear system
+    z_values = spsolve_scipy(laplacian, b)
+    
+    if progress_callback:
+        progress_callback(90)
+    
+    # Create and fill output depth map
+    z = np.zeros((height, width))
+    z[mask] = z_values
+        
+    if progress_callback:
+        progress_callback(100)
+    return z
+
+
+def depth_from_gradient_poisson_hybrid(p, q, mask=None, progress_callback=None):
+    height, width = p.shape
+
+    if mask is None:
+        mask = np.ones((height, width), dtype=bool)
+
+    if progress_callback:
+        progress_callback(20)
+
+    pixel_indices = -np.ones((height, width), dtype=np.int32)
+    valid_pixels = np.where(mask)
+    num_valid_pixels = len(valid_pixels[0])
+    pixel_indices[valid_pixels] = np.arange(num_valid_pixels, dtype=np.int32)
+
+    # Divergence
+    divergence = np.zeros((height, width), dtype=np.float32)
+    divergence[:, 1:-1] += (p[:, 2:] - p[:, :-2]) * 0.5
+    divergence[1:-1, :] += (q[2:, :] - q[:-2, :]) * 0.5
+
+    if progress_callback:
+        progress_callback(50)
+
+    # Build Laplacian on CPU with Numba
+        
+    # Vettorializzazione della costruzione della matrice Laplaciana
+    row_indices = []
+    col_indices = []
+    values = []
+
+    # Aggiungi le voci per i vicini a destra
+    right_mask = np.zeros_like(mask)
+    right_mask[:, :-1] = mask[:, 1:]
+    valid_right_neighbors = mask & right_mask
+    rows, cols = np.where(valid_right_neighbors)
+    row_indices.extend(pixel_indices[rows, cols].tolist())
+    col_indices.extend(pixel_indices[rows, cols + 1].tolist())
+    values.extend([-1.0] * len(rows))
+
+    # Aggiungi le voci per i vicini a sinistra
+    left_mask = np.zeros_like(mask)
+    left_mask[:, 1:] = mask[:, :-1]
+    valid_left_neighbors = mask & left_mask
+    rows, cols = np.where(valid_left_neighbors)
+    row_indices.extend(pixel_indices[rows, cols].tolist())
+    col_indices.extend(pixel_indices[rows, cols - 1].tolist())
+    values.extend([-1.0] * len(rows))
+
+    # Aggiungi le voci per i vicini sopra
+    up_mask = np.zeros_like(mask)
+    up_mask[1:, :] = mask[:-1, :]
+    valid_up_neighbors = mask & up_mask
+    rows, cols = np.where(valid_up_neighbors)
+    row_indices.extend(pixel_indices[rows, cols].tolist())
+    col_indices.extend(pixel_indices[rows - 1, cols].tolist())
+    values.extend([-1.0] * len(rows))
+
+    # Aggiungi le voci per i vicini sotto
+    down_mask = np.zeros_like(mask)
+    down_mask[:-1, :] = mask[1:, :]
+    valid_down_neighbors = mask & down_mask
+    rows, cols = np.where(valid_down_neighbors)
+    row_indices.extend(pixel_indices[rows, cols].tolist())
+    col_indices.extend(pixel_indices[rows + 1, cols].tolist())
+    values.extend([-1.0] * len(rows))
+    
+    # Calcola il numero di vicini validi per ogni pixel e aggiungi le voci diagonali
+    num_neighbors = (valid_right_neighbors + valid_left_neighbors + valid_up_neighbors + valid_down_neighbors)
+    row_indices.extend(pixel_indices[mask].tolist())
+    col_indices.extend(pixel_indices[mask].tolist())
+    values.extend(num_neighbors[mask].tolist())
+
+    laplacian = sparse.coo_matrix((values, (row_indices, col_indices)),
+                                  shape=(num_valid_pixels, num_valid_pixels)).tocsr()
+    
+    b_cpu = divergence[mask].astype(np.float32)
+
+    if progress_callback:
+        progress_callback(70)
+    
+    laplacian_cpu = sparse.coo_matrix((values, (row_indices, col_indices)),
+                                  shape=(num_valid_pixels, num_valid_pixels)).tocsr()
+    
+    b_cpu = divergence[mask].astype(np.float32)
+
+    if progress_callback:
+        progress_callback(70)
+
+    # Move to GPU
+    laplacian_gpu = csp.csr_matrix(laplacian_cpu)
+    b_gpu = cp.asarray(b_cpu)
+
+    # Solve in GPU
+    z_values_gpu = spsolve_cuda(laplacian_gpu, b_gpu)
+
+    if progress_callback:
+        progress_callback(90)
+
+    # Back to CPU
+    z = np.zeros((height, width), dtype=np.float32)
+    z[mask] = cp.asnumpy(z_values_gpu)
+    if progress_callback:
+        progress_callback(100)
+    return z
+
+import cupy as cp
+from cupyx.scipy import sparse as csp
+from cupyx.scipy.sparse.linalg import spsolve as spsolve_cuda
+from cupyx.scipy.sparse.linalg import cg as cg_cuda
+
+
+laplacian_kernel = cp.RawKernel(r'''
+extern "C" __global__
+void build_laplacian(const int height, const int width,
+                     const bool* __restrict__ mask,
+                     const int* __restrict__ pixel_indices,
+                     int* __restrict__ row_indices,
+                     int* __restrict__ col_indices,
+                     float* __restrict__ values) {
+    int tid = blockDim.x * blockIdx.x + threadIdx.x;
+    int total = height * width;
+    if (tid >= total) return;
+
+    int i = tid / width;
+    int j = tid % width;
+    if (!mask[tid]) return;
+
+    int idx = pixel_indices[tid];
+    int pos = idx * 5; // max 5 entries per row (4 neighbors + diag)
+
+    int neighbors = 0;
+    if (i > 0 && mask[(i-1)*width + j]) {
+        row_indices[pos] = idx;
+        col_indices[pos] = pixel_indices[(i-1)*width + j];
+        values[pos] = -1.0f;
+        pos++;
+        neighbors++;
+    }
+    if (i < height-1 && mask[(i+1)*width + j]) {
+        row_indices[pos] = idx;
+        col_indices[pos] = pixel_indices[(i+1)*width + j];
+        values[pos] = -1.0f;
+        pos++;
+        neighbors++;
+    }
+    if (j > 0 && mask[i*width + (j-1)]) {
+        row_indices[pos] = idx;
+        col_indices[pos] = pixel_indices[i*width + (j-1)];
+        values[pos] = -1.0f;
+        pos++;
+        neighbors++;
+    }
+    if (j < width-1 && mask[i*width + (j+1)]) {
+        row_indices[pos] = idx;
+        col_indices[pos] = pixel_indices[i*width + (j+1)];
+        values[pos] = -1.0f;
+        pos++;
+        neighbors++;
+    }
+    // Diagonal entry
+    row_indices[pos] = idx;
+    col_indices[pos] = idx;
+    values[pos] = (float)neighbors;
+}
+''', 'build_laplacian')
+
+def depth_from_gradient_poisson_fullcuda(p, q, mask=None, progress_callback=None):
+    height, width = p.shape
+
+    # --- CPU to GPU ---
+    p_gpu = cp.asarray(p, dtype=cp.float32)
+    q_gpu = cp.asarray(q, dtype=cp.float32)
+    if mask is None:
+        mask_gpu = cp.ones((height, width), dtype=cp.bool_)
+    else:
+        mask_gpu = cp.asarray(mask, dtype=cp.bool_)
+
+    if progress_callback:
+        progress_callback(20)
+
+    # Compute pixel indices (GPU)
+    pixel_indices_gpu = cp.full((height, width), -1, dtype=cp.int32)
+    valid_pixels = cp.argwhere(mask_gpu.ravel()).ravel()
+    num_valid_pixels = valid_pixels.size
+    pixel_indices_gpu.ravel()[mask_gpu.ravel()] = cp.arange(num_valid_pixels, dtype=cp.int32)
+
+    # Divergence (GPU)
+    divergence_gpu = cp.zeros((height, width), dtype=cp.float32)
+    divergence_gpu[:, 1:-1] += (p_gpu[:, 2:] - p_gpu[:, :-2]) * 0.5
+    divergence_gpu[1:-1, :] += (q_gpu[2:, :] - q_gpu[:-2, :]) * 0.5
+
+    if progress_callback:
+        progress_callback(50)
+
+    # Allocate COO arrays (max 5 entries per pixel)
+    max_entries = num_valid_pixels * 5
+    row_idx_gpu = cp.full((max_entries,), -1, dtype=cp.int32)
+    col_idx_gpu = cp.full((max_entries,), -1, dtype=cp.int32)
+    vals_gpu = cp.zeros((max_entries,), dtype=cp.float32)
+
+    # Kernel launch
+    threads = 256
+    blocks = (height * width + threads - 1) // threads
+    laplacian_kernel((blocks,), (threads,),
+                     (height, width,
+                      mask_gpu.ravel(),
+                      pixel_indices_gpu.ravel(),
+                      row_idx_gpu,
+                      col_idx_gpu,
+                      vals_gpu))
+
+    # Filtra valori validi (alcuni slot restano -1)
+    valid_mask = row_idx_gpu >= 0
+    row_idx_gpu = row_idx_gpu[valid_mask]
+    col_idx_gpu = col_idx_gpu[valid_mask]
+    vals_gpu = vals_gpu[valid_mask]
+
+    # Crea matrice sparsa CSR in GPU
+    laplacian_gpu = csp.coo_matrix((vals_gpu, (row_idx_gpu, col_idx_gpu)),
+                                   shape=(num_valid_pixels, num_valid_pixels)).tocsr()
+
+    b_gpu = divergence_gpu[mask_gpu].astype(cp.float32)
+
+    # Risolvi su GPU
+    z_values_gpu = cg_cuda(laplacian_gpu, b_gpu)
+
+    if progress_callback:
+        progress_callback(90)
+
+    # Output CPU
+    z = cp.zeros((height, width), dtype=cp.float32)
+    z[mask_gpu] = z_values_gpu
+    
+    # Cleanup GPU memory
+    del p_gpu, q_gpu, mask_gpu, pixel_indices_gpu, divergence_gpu
+    del row_idx_gpu, col_idx_gpu, vals_gpu, laplacian_gpu, b_gpu, z_values_gpu
+    cp.get_default_memory_pool().free_all_blocks()
+    cp.cuda.Device().synchronize()
+    return cp.asnumpy(z)
 
 def depth_from_gradient_frankot(p, q, mask=None, progress_callback=None):
     """
@@ -233,7 +606,6 @@ def depth_from_gradient_frankot(p, q, mask=None, progress_callback=None):
     z[~mask] = 0
     
     return z
-
 
 def depth_from_gradient_direct(p, q, mask=None, progress_callback=None):
     """

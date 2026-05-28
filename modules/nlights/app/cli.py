@@ -7,7 +7,6 @@ import os
 import click
 import configparser
 from cupy.cuda import is_available
-
 # Crea l'oggetto ConfigParser
 configIni = configparser.ConfigParser()
 
@@ -79,7 +78,6 @@ config = {
     'albedo': None,
     'use_gpu': is_available(),
     }
-
 
 
     

@@ -52,86 +52,6 @@ class PhotometricStereo:
         self.normals = None
         self.albedo = None
     
-    # def process_old(self):
-    #     """
-    #     Compute surface normals and albedo using photometric stereo.
-    #     Exact implementation of the MATLAB algorithm.
-    #     """
-    #
-    #     #print(f"Mask shape: {self.mask.shape}")
-    #     #print(f"Mask : {self.mask}")
-    #
-    #     # Reshape images for processing
-    #     [N1, N2, M] = self.images.shape
-    #     N = N1 * N2
-    #     I = np.reshape(self.images, (N, M)).T
-    #     mask = np.reshape(self.mask, (N, M))
-    #
-    #     #print(f"Mask shape: {mask.shape}")
-    #     #print(f"Mask : {mask}")
-    #
-    #     # Create mask index for efficient computation
-    #     mask_index = np.zeros(N, dtype=int)
-    #     for i in range(M):
-    #         mask_index = mask_index * 2 + mask[:, i]
-    #
-    #     #print(f"mask_index: {mask_index}")
-    #     unique_mask_indices = np.unique(mask_index)
-    #
-    #     # Estimate scaled normal vectors
-    #     b = np.full((3, N), np.nan)
-    #     #print("Unique mask indices:", unique_mask_indices)
-    #     for idx in unique_mask_indices:
-    #         #print(f"Processing mask index1: {idx}")
-    #         # Find all pixels with this index
-    #         pixel_idx = np.where(mask_index == idx)[0]
-    #
-    #         #print(f"Processing mask index2: {pixel_idx}")
-    #
-    #         # Find all images that are active for this index
-    #         image_tag = mask[pixel_idx[0], :]
-    #
-    #         #print(f"Processing mask index3: {image_tag}")
-    #
-    #         if np.sum(image_tag) < 3:
-    #             continue
-    #
-    #         # Create lighting matrix for active images
-    #         Li = self.light_directions[:, image_tag]
-    #
-    #         # Create intensity matrix for these pixels and active images
-    #         Ii = I[image_tag, :][:, pixel_idx]
-    #
-    #         # Compute scaled normal
-    #         # Equivalent to MATLAB's Li' \ Ii
-    #         b[:, pixel_idx] = np.linalg.lstsq(Li.T, Ii, rcond=None)[0]
-    #
-    #
-    #     # Reshape and calculate albedo and unit normal vectors
-    #     b = np.reshape(b.T, (N1, N2, 3))
-    #     rho = np.sqrt(np.sum(b**2, axis=2))
-    #
-    #
-    #     rho_replicated = np.tile(rho[:, :, np.newaxis], (1, 1, 3))
-    #
-    #     # Normalizza b
-    #     n = b / rho_replicated
-    #
-    #     # Avoid division by zero
-    #     '''
-    #     n = np.zeros_like(b)
-    #     valid_pixels = rho > 0
-    #     for i in range(3):
-    #         n_channel = b[:,:,i].copy()
-    #         n_channel[valid_pixels] = n_channel[valid_pixels] / rho[valid_pixels]
-    #         n[:,:,i] = n_channel
-    #     '''
-    #     self.normals = n #np.transpose(n, (2, 0, 1))  # Convert to (3, N1, N2)
-    #     self.albedo = rho
-    #
-    #
-    #     return self.albedo, self.normals
-
     def process(self):
         """
         Compute surface normals and albedo using photometric stereo.
@@ -320,40 +240,6 @@ class PhotometricStereo:
         
         return error
 
-
-# def inpaint_nan(array, size=3):
-#     """
-#     Sostituisce i NaN con la media dei vicini validi.
-#     """
-#     def local_valid_mean(values):
-#         valid = values[~np.isnan(values) & (values != 0)]
-#         if valid.size > 0:
-#             return np.mean(valid)
-#         else:
-#             return 0  # o np.nan se vuoi tenere come NaN
-#
-#     return generic_filter(array, local_valid_mean, size=size, mode='mirror')
-#
-# def remove_outliers(array, threshold=3.0, size=3):
-#     """
-#     Rimuove valori anomali (z-score alto) sostituendoli con la media dei vicini.
-#     """
-#     mean = gaussian_filter(array, sigma=1)
-#     std = np.std(array)
-#
-#     z = np.abs(array - mean) / (std + 1e-8)
-#     outliers = z > threshold
-#     array_clean = array.copy()
-#
-#     def local_mean(values):
-#         return np.mean(values)
-#
-#     array_mean_local = generic_filter(array, local_mean, size=size, mode='mirror')
-#     array_clean[outliers] = array_mean_local[outliers]
-#
-#     return array_clean
-
-
 def fast_local_mean_2d(a, size):
     """
     Calcola la media locale 2D usando la somma cumulativa (integral image).
@@ -405,15 +291,6 @@ def inpaint_nan0(img):
     fs = 5
     kernel = np.ones((fs,fs), np.uint8)
     mask_dilation = cv2.dilate(mask_uint8, kernel, iterations=1)
-
-    # # Calcola il gradiente lungo l'asse x e y
-    # sobelx = cv2.Sobel(img, cv2.CV_64F, 1, 0, ksize=3)
-    # sobely = cv2.Sobel(img, cv2.CV_64F, 0, 1, ksize=3)
-    #
-    # magnitude = cv2.magnitude(sobelx, sobely)
-    # magnitude = cv2.normalize(magnitude, None, 0, 255, cv2.NORM_MINMAX)
-    # magnitude = magnitude.astype(np.uint8)
-
 
     if np.size(img.shape) == 2:
         inpainted = inpainted[mask_dilation] = 0 #cv2.inpaint(img_float, mask_dilation, fs, cv2.INPAINT_TELEA) # Fa caca'
