@@ -1,0 +1,352 @@
+# BUCO NELL'ACQUA. Implementazione fallimentare, non converge.
+
+def depth_from_gradient_poisson_gpu_pyamgx_exact(normals, config_string=None):
+    """
+    AMGX implementation that exactly matches your reference Poisson solver
+    """
+    import pyamgx
+    import numpy as np
+    from scipy.sparse import diags, kron, eye
+    
+    print("Poisson (GPU PyAMGX): Inizializzazione AMGX", flush=True)
+    pyamgx.initialize()
+    
+    if not config_string:
+        config_string = r'''
+{
+    "config_version": 2,
+    "determinism_flag": 1,
+    "exception_handling": 1,
+    "solver": {
+        "solver": "BICGSTAB",
+        "preconditioner": "JACOBI_L1",
+        "relaxation_factor": 0.75,
+        "max_iters": 2000,
+        "tolerance": 1e-8,
+        "convergence": "RELATIVE_INI_CORE",
+        "monitor_residual": 1,
+        "print_solve_stats": 1
+    }
+}'''
+    
+    cfg = pyamgx.Config().create(config_string)
+    resources = pyamgx.Resources().create_simple(cfg)
+    
+    # Use consistent mode
+    mode = 'dDDI'
+    solver = pyamgx.Solver().create(resources, cfg, mode)
+    mat = pyamgx.Matrix().create(resources, mode)
+    rhs = pyamgx.Vector().create(resources, mode)
+    sol = pyamgx.Vector().create(resources, mode)
+    
+    try:
+        # EXACT COPY of your gradient computation
+        nx, ny, nz = normals[..., 0], normals[..., 1], normals[..., 2]
+        epsilon = 1e-6
+        p = -nx / (nz + epsilon)
+        q = -ny / (nz + epsilon)
+        M, N = p.shape
+        
+        print("Poisson: Computing divergencies from gradient field", flush=True)
+        
+        # EXACT COPY of your divergence computation
+        fx = np.zeros_like(p)
+        fy = np.zeros_like(q)
+        fx[:, :-1] = p[:, :-1]
+        fy[:-1, :] = q[:-1, :]
+        div = (fx - np.roll(fx, 1, axis=1)) + (fy - np.roll(fy, 1, axis=0))
+        
+        print("Poisson: Setting solver", flush=True)
+        
+        # EXACT COPY of your matrix construction
+        Ix = eye(N)
+        Iy = eye(M)
+        
+        e = np.ones(N)
+        Dx = diags([e, -2 * e, e], [-1, 0, 1], shape=(N, N))
+        Dx = Dx.tolil()
+        Dx[0, 0] = -1
+        Dx[-1, -1] = -1
+        
+        e = np.ones(M)
+        Dy = diags([e, -2 * e, e], [-1, 0, 1], shape=(M, M))
+        Dy = Dy.tolil()
+        Dy[0, 0] = -1
+        Dy[-1, -1] = -1
+        
+        A = kron(Iy, Dx) + kron(Dy, Ix)
+        A_csr = A.tocsr()
+        
+        print("Poisson: Solving the system", flush=True)
+        b = div.flatten()
+        
+        print(f"Matrix shape: {A_csr.shape}, nnz: {A_csr.nnz}")
+        print(f"RHS shape: {b.shape}")
+        print(f"RHS stats: mean={np.mean(b):.2e}, std={np.std(b):.2e}, max_abs={np.max(np.abs(b)):.2e}")
+        
+        # Check matrix properties
+        diag_vals = A_csr.diagonal()
+        print(f"Matrix diagonal: min={np.min(diag_vals):.2e}, max={np.max(diag_vals):.2e}")
+        
+        # Ensure correct data types for AMGX
+        A_csr.indptr = np.ascontiguousarray(A_csr.indptr, dtype=np.int32)
+        A_csr.indices = np.ascontiguousarray(A_csr.indices, dtype=np.int32)
+        A_csr.data = np.ascontiguousarray(A_csr.data, dtype=np.float64)
+        b = np.ascontiguousarray(b, dtype=np.float64)
+        
+        # Upload to AMGX
+        mat.upload(
+            row_ptrs=A_csr.indptr,
+            col_indices=A_csr.indices,
+            data=A_csr.data
+        )
+        rhs.upload(b)
+        sol.upload(np.zeros_like(b, dtype=np.float64))
+        
+        # Solve
+        print("Poisson (GPU PyAMGX): Setup solver...", flush=True)
+        solver.setup(mat)
+        print("Poisson (GPU PyAMGX): Risoluzione in corso...", flush=True)
+        solver.solve(rhs, sol)
+        print("Poisson (GPU PyAMGX): Risoluzione completata", flush=True)
+        
+        # Get result and reshape
+        Z_flat = sol.download()
+        Z = Z_flat.reshape(M, N)
+        Z = Z - np.min(Z)  # Normalize to non-negative
+        
+        return Z
+        
+    finally:
+        # Clean up
+        mat.destroy()
+        rhs.destroy()
+        sol.destroy()
+        solver.destroy()
+        resources.destroy()
+        cfg.destroy()
+        pyamgx.finalize()
+
+
+
+def depth_from_gradient_poisson_gpu_memory_efficient(normals, max_resolution=2048, tile_overlap=64):
+    """
+    Strategia 1: Downsampling + Upsampling con interpolazione intelligente
+    """
+    import numpy as np
+    from scipy.ndimage import zoom
+    
+    M, N = normals.shape[:2]
+    print(f"Input originale: {M}×{N} = {M*N:,} punti")
+    
+    # Calcola il fattore di downsampling
+    max_dim = max(M, N)
+    if max_dim <= max_resolution:
+        return depth_from_gradient_poisson_gpu_pyamgx_exact(normals)
+    
+    scale_factor = max_resolution / max_dim
+    new_M = int(M * scale_factor)
+    new_N = int(N * scale_factor)
+    
+    print(f"Risoluzione ridotta: {new_M}×{new_N} = {new_M*new_N:,} punti (fattore: {scale_factor:.3f})")
+    
+    # Downsample le normali
+    normals_small = np.zeros((new_M, new_N, 3))
+    for i in range(3):
+        normals_small[:, :, i] = zoom(normals[:, :, i], scale_factor, order=1)
+    
+    # Rinormalizza
+    norm = np.linalg.norm(normals_small, axis=2, keepdims=True)
+    normals_small = normals_small / (norm + 1e-10)
+    
+    # Risolvi alla risoluzione ridotta
+    depth_small = depth_from_gradient_poisson_gpu_pyamgx_exact(normals_small)
+    
+    # Upscale con interpolazione cubica
+    upscale_factor = 1.0 / scale_factor
+    depth_full = zoom(depth_small, upscale_factor, order=3)
+    
+    # Aggiusta le dimensioni esatte
+    if depth_full.shape != (M, N):
+        depth_full = zoom(depth_full, (M/depth_full.shape[0], N/depth_full.shape[1]), order=3)
+    
+    return depth_full
+
+
+def depth_from_gradient_poisson_tiled(normals, tile_size=1024, overlap=128):
+    """
+    Strategia 2: Tiling - divide l'immagine in tile sovrapposte
+    """
+    import numpy as np
+    from scipy.ndimage import zoom
+    
+    M, N = normals.shape[:2]
+    print(f"Elaborazione a tile: {M}×{N} con tile {tile_size}×{tile_size}")
+    
+    depth_full = np.zeros((M, N), dtype=np.float64)
+    weight_full = np.zeros((M, N), dtype=np.float64)
+    
+    # Calcola il numero di tile
+    tiles_y = (M + tile_size - overlap - 1) // (tile_size - overlap)
+    tiles_x = (N + tile_size - overlap - 1) // (tile_size - overlap)
+    
+    print(f"Numero di tile: {tiles_y} × {tiles_x} = {tiles_y * tiles_x}")
+    
+    for tile_y in range(tiles_y):
+        for tile_x in range(tiles_x):
+            # Calcola i bounds del tile
+            y_start = tile_y * (tile_size - overlap)
+            x_start = tile_x * (tile_size - overlap)
+            y_end = min(y_start + tile_size, M)
+            x_end = min(x_start + tile_size, N)
+            
+            print(f"Tile ({tile_y},{tile_x}): [{y_start}:{y_end}, {x_start}:{x_end}]", flush=True)
+            
+            # Estrai il tile
+            tile_normals = normals[y_start:y_end, x_start:x_end, :]
+            
+            # Risolvi il tile
+            try:
+                tile_depth = depth_from_gradient_poisson_gpu_pyamgx_exact(tile_normals)
+                
+                # Crea pesi per il blending (più alti al centro)
+                tile_h, tile_w = tile_depth.shape
+                weight = np.ones((tile_h, tile_w))
+                
+                # Riduci i pesi ai bordi per il blending
+                fade = min(overlap // 2, 32)
+                if fade > 0:
+                    # Fade sui bordi
+                    weight[:fade, :] *= np.linspace(0.1, 1.0, fade)[:, None]
+                    weight[-fade:, :] *= np.linspace(1.0, 0.1, fade)[:, None]
+                    weight[:, :fade] *= np.linspace(0.1, 1.0, fade)[None, :]
+                    weight[:, -fade:] *= np.linspace(1.0, 0.1, fade)[None, :]
+                
+                # Aggiungi al risultato finale
+                depth_full[y_start:y_end, x_start:x_end] += tile_depth * weight
+                weight_full[y_start:y_end, x_start:x_end] += weight
+                
+            except Exception as e:
+                print(f"Errore nel tile ({tile_y},{tile_x}): {e}")
+                continue
+    
+    # Normalizza per i pesi
+    mask = weight_full > 0
+    depth_full[mask] /= weight_full[mask]
+    
+    return depth_full
+
+
+def depth_from_gradient_poisson_hierarchical(normals, levels=3, base_resolution=512):
+    """
+    Strategia 3: Approccio gerarchico multi-risoluzione
+    """
+    import numpy as np
+    from scipy.ndimage import zoom
+    
+    M, N = normals.shape[:2]
+    print(f"Approccio gerarchico: {levels} livelli, risoluzione base {base_resolution}")
+    
+    current_normals = normals.copy()
+    
+    # Partenza alla risoluzione più bassa
+    max_dim = max(M, N)
+    scale_factor = base_resolution / max_dim
+    
+    # Lista delle risoluzioni da processare
+    resolutions = []
+    current_scale = scale_factor
+    
+    for level in range(levels):
+        res_M = int(M * current_scale)
+        res_N = int(N * current_scale)
+        resolutions.append((res_M, res_N, current_scale))
+        current_scale = min(current_scale * 2, 1.0)
+        if current_scale >= 1.0:
+            resolutions[-1] = (M, N, 1.0)
+            break
+    
+    print(f"Risoluzioni: {resolutions}")
+    
+    depth = None
+    
+    for level, (res_M, res_N, scale) in enumerate(resolutions):
+        print(f"Livello {level}: {res_M}×{res_N} (scala {scale:.3f})")
+        
+        # Scala le normali
+        if scale < 1.0:
+            normals_scaled = np.zeros((res_M, res_N, 3))
+            for i in range(3):
+                normals_scaled[:, :, i] = zoom(normals[:, :, i], scale, order=1)
+            
+            # Rinormalizza
+            norm = np.linalg.norm(normals_scaled, axis=2, keepdims=True)
+            normals_scaled = normals_scaled / (norm + 1e-10)
+        else:
+            normals_scaled = normals
+        
+        # Se abbiamo già una soluzione dal livello precedente, usala come guess iniziale
+        if depth is not None and level > 0:
+            # Upscale la soluzione precedente come punto di partenza
+            depth_upscaled = zoom(depth, (res_M/depth.shape[0], res_N/depth.shape[1]), order=3)
+            print(f"  Usando soluzione precedente come inizializzazione")
+        
+        # Risolvi a questa risoluzione
+        try:
+            depth = depth_from_gradient_poisson_gpu_pyamgx_exact(normals_scaled)
+            print(f"  Livello {level} completato")
+        except Exception as e:
+            print(f"  Errore al livello {level}: {e}")
+            if depth is None:
+                raise
+            break
+    
+    return depth
+
+
+def depth_from_gradient_poisson_smart_strategy(normals, strategy='auto'):
+    """
+    Strategia intelligente che sceglie automaticamente l'approccio migliore
+    """
+    M, N = normals.shape[:2]
+    total_points = M * N
+    
+    print(f"Dimensioni input: {M}×{N} = {total_points:,} punti")
+    
+    # Stima memoria richiesta (approssimativa)
+    # Matrice: ~5 * total_points * 8 bytes (5-point stencil, double precision)
+    # Vettori: total_points * 8 * 3 (RHS, solution, temp)
+    matrix_memory_gb = (5 * total_points * 8) / (1024**3)
+    vector_memory_gb = (total_points * 8 * 3) / (1024**3)
+    total_memory_gb = matrix_memory_gb + vector_memory_gb
+    
+    print(f"Memoria stimata: {total_memory_gb:.2f} GB")
+    
+    if strategy == 'auto':
+        if total_points <= 1000000:  # 1M punti
+            strategy = 'direct'
+        elif total_points <= 4000000:  # 4M punti  
+            strategy = 'downsampling'
+        elif total_points <= 16000000:  # 16M punti
+            strategy = 'tiling'
+        else:
+            strategy = 'hierarchical'
+    
+    print(f"Strategia selezionata: {strategy}")
+    
+    if strategy == 'direct':
+        return depth_from_gradient_poisson_gpu_pyamgx_exact(normals)
+    elif strategy == 'downsampling':
+        return depth_from_gradient_poisson_gpu_memory_efficient(normals, max_resolution=2048)
+    elif strategy == 'tiling':
+        return depth_from_gradient_poisson_tiled(normals, tile_size=(1024*4), overlap=(128*4))
+    elif strategy == 'hierarchical':
+        return depth_from_gradient_poisson_hierarchical(normals, levels=4, base_resolution=512)
+    else:
+        raise ValueError(f"Strategia sconosciuta: {strategy}")
+
+
+# Esempio d'uso:
+# depth = depth_from_gradient_poisson_smart_strategy(normals)
+# oppure forzare una strategia:
+# depth = depth_from_gradient_poisson_smart_strategy(normals, strategy='downsampling')

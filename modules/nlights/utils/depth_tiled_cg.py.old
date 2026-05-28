@@ -1,0 +1,149 @@
+import numpy as np
+from scipy.sparse import eye, diags, kron
+from scipy.sparse.linalg import cg
+import time
+from concurrent.futures import ThreadPoolExecutor
+from tqdm import tqdm  
+def depth_from_gradient_poisson_tiled(normals, tile_size=4096, overlap=256, n_schwarz_iters=3):
+    """
+    CPU tiled Poisson solver using additive Schwarz with overlap.
+    Equivalente (entro tolleranze) a depth_from_gradient_poisson().
+    - interfacce interne: Dirichlet = valori di Z dalla iterazione precedente (contributi nel RHS)
+    - bordi globali: stessa discretizzazione del solver globale (end-diag= -1 nel 1D)
+    """
+
+    # --- Gradiente -> divergenza (stesso schema del riferimento) ---
+    nx, ny, nz = normals[..., 0], normals[..., 1], normals[..., 2]
+    epsilon = 1e-6
+    p = -nx / (nz + epsilon)
+    q = -ny / (nz + epsilon)
+
+    M, N = p.shape
+    fx = np.zeros_like(p, dtype=np.float64)
+    fy = np.zeros_like(q, dtype=np.float64)
+    fx[:, :-1] = p[:, :-1]
+    fy[:-1, :] = q[:-1, :]
+    div = (fx - np.roll(fx, 1, axis=1)) + (fy - np.roll(fy, 1, axis=0))
+    div = div.astype(np.float64, copy=False)
+
+    # Soluzione globale (iniziale)
+    Z = np.zeros((M, N), dtype=np.float64)
+
+    # Utility: costruttore 1D con BC tipo riferimento
+    # Base: tridiag([1, -2, 1]); agli estremi metti -1 sulla diag quando il lato è bordo globale (Neumann "modificata")
+    def one_dim_op(n, is_global_left, is_global_right):
+        e = np.ones(n, dtype=np.float64)
+        T = diags([e, -2*e, e], offsets=[-1, 0, 1], shape=(n, n)).tolil()
+        if is_global_left:
+            T[0, 0] = -1.0
+            # offdiag +1 verso destra già presente
+        if is_global_right:
+            T[-1, -1] = -1.0
+            # offdiag +1 verso sinistra già presente
+        return T.tocsc()
+
+    # Suddivisione in tile overlappati
+    core = max(1, tile_size - 2 * overlap)
+    step = core
+    tiles_y = (M - overlap + step - 1) // step
+    tiles_x = (N - overlap + step - 1) // step
+
+    def tile_bounds(ty, tx):
+        y0_core = ty * step
+        x0_core = tx * step
+        y0 = max(0, y0_core - overlap)
+        x0 = max(0, x0_core - overlap)
+        y1 = min(M, y0_core + core + overlap)
+        x1 = min(N, x0_core + core + overlap)
+        cy0 = y0_core - y0
+        cx0 = x0_core - x0
+        cy1 = cy0 + min(core, y1 - y0 - cy0)
+        cx1 = cx0 + min(core, x1 - x0 - cx0)
+        return (y0, y1, x0, x1, cy0, cy1, cx0, cx1)
+
+    print(f"Tiles: {tiles_y} x {tiles_x}  (core={core}, overlap={overlap})", flush=True)
+
+    def process_tile(ty, tx, div, Z, M, N):
+        y0, y1, x0, x1, cy0, cy1, cx0, cx1 = tile_bounds(ty, tx)
+        if cy1 <= cy0 or cx1 <= cx0:
+            return None  # Skip if the tile is invalid
+
+        # finestre
+        f_win = div[y0:y1, x0:x1]
+        z_win = Z[y0:y1, x0:x1]
+        
+        # core da risolvere
+        mh = cy1 - cy0
+        nh = cx1 - cx0
+        f_core = f_win[cy0:cy1, cx0:cx1].copy()
+        
+        # anelli di interfaccia (Dirichlet) presi da soluzione precedente
+        has_top = (cy0 > 0)
+        has_bottom = (cy1 < (y1 - y0))
+        has_left = (cx0 > 0)
+        has_right = (cx1 < (x1 - x0))
+        
+        if has_top:
+            b_top = z_win[cy0 - 1, cx0:cx1]
+            f_core[0, :] += b_top
+        if has_bottom:
+            b_bottom = z_win[cy1, cx0:cx1]
+            f_core[-1, :] += b_bottom
+        if has_left:
+            b_left = z_win[cy0:cy1, cx0 - 1]
+            f_core[:, 0] += b_left
+        if has_right:
+            b_right = z_win[cy0:cy1, cx1]
+            f_core[:, -1] += b_right
+        
+        # flag se il core tocca il bordo globale dell'immagine
+        global_top = (y0 + cy0 == 0)
+        global_bottom = (y0 + cy1 == M)
+        global_left = (x0 + cx0 == 0)
+        global_right = (x0 + cx1 == N)
+        
+        # Operatori 1D con gli estremi settati solo se a bordo globale
+        Tx = one_dim_op(nh, is_global_left=global_left, is_global_right=global_right)
+        Ty = one_dim_op(mh, is_global_left=global_top, is_global_right=global_bottom)
+        Ix = eye(nh, format='csc')
+        Iy = eye(mh, format='csc')
+        A = kron(Iy, Tx) + kron(Ty, Ix)  # stesso segno/scheme del globale
+        rhs = f_core.ravel()
+        
+        # CG
+        z_vec, info = cg(A, rhs, atol=1e-5, rtol=1e-5, maxiter=5000)
+        if info != 0:
+            # non fermarti: può convergere in iterazioni successive di Schwarz
+            pass
+        z_core = z_vec.reshape((mh, nh))
+        
+        return (y0 + cy0, y0 + cy1, x0 + cx0, x0 + cx1, z_core)
+
+    t_all = time.time()
+    for it in range(1, n_schwarz_iters + 1):
+        t_it = time.time()
+
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            # Crea una progress bar per il numero totale di tile
+            with tqdm(total=tiles_y * tiles_x, desc=f"Iter {it}/{n_schwarz_iters}", unit="tile") as pbar:
+                for ty in range(tiles_y):
+                    for tx in range(tiles_x):
+                        futures.append(executor.submit(process_tile, ty, tx, div, Z, M, N))
+                
+                for future in futures:
+                    result = future.result()
+                    if result is not None:
+                        y_start, y_end, x_start, x_end, z_core = result
+                        Z[y_start:y_end, x_start:x_end] = z_core
+                        # print(f"Tile processed: ({ty}, {tx})")
+                    
+                    # Aggiorna la progress bar
+                    pbar.update(1)
+        
+        print(f"[Iter {it}/{n_schwarz_iters}] sweep done in {time.time()-t_it:.2f}s", flush=True)
+
+    # normalizzazione come nel riferimento
+    Z -= np.min(Z)
+    print(f"=== CPU tiled solve complete in {time.time()-t_all:.2f}s ===")
+    return Z

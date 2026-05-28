@@ -1,0 +1,484 @@
+from tqdm import tqdm
+import time
+import numpy as np
+import cupy as cp
+from cupyx.scipy.sparse import csc_matrix, eye, diags, kron
+from cupyx.scipy.sparse.linalg import cg
+
+def depth_from_gradient_poisson_cupy_tiled(
+    normals,
+    tile_size=4096,
+    overlap=256,
+    max_gpu_memory_gb=8,
+    n_schwarz_iters=1,
+    relaxation=1.0,
+    cg_tol=1e-5,
+    cg_maxit=5000,
+):
+    """
+    Versione CuPy che usa ESATTAMENTE la stessa matematica della versione CPU:
+    - Stessa discretizzazione del gradiente -> divergenza
+    - Stessi operatori 1D con prodotto di Kronecker
+    - Stessa gestione dei bordi globali vs interni
+    """
+    
+    # Estrai dimensioni
+    M, N = normals.shape[:2]
+    print(f"=== CuPy Tiled Poisson (CPU Math Compatible) ===")
+    print(f"Input size: {M}×{N} = {M*N:,} px")
+
+    # Stima memoria e ridimensionamento tile (stesso della versione originale)
+    tile_points = tile_size * tile_size
+    mem_per_tile_gb = (tile_points * 8 * 6) / (1024**3)
+    if mem_per_tile_gb > max_gpu_memory_gb * 0.8:
+        new_tile = int(tile_size * np.sqrt(max_gpu_memory_gb * 0.8 / mem_per_tile_gb))
+        new_tile = max(new_tile, overlap + 64)
+        print(f"[mem] riduco tile {tile_size}→{new_tile}")
+        tile_size = new_tile
+    # === UNA SOLA TILE -> RICADE NEL CASO NO TILING ===
+    if tile_size >= min(M, N):
+        print(f"=== Small Problem -> No Tiling ===")
+        return depth_from_gradient_poisson_cupy(normals)
+
+    # === STESSO CALCOLO GRADIENTE -> DIVERGENZA DELLA VERSIONE CPU ===
+    nx, ny, nz = normals[..., 0], normals[..., 1], normals[..., 2]
+    epsilon = 1e-6
+    p = -nx / (nz + epsilon)
+    q = -ny / (nz + epsilon)
+
+    # Stessa discretizzazione della CPU version
+    fx = np.zeros_like(p, dtype=np.float64)
+    fy = np.zeros_like(q, dtype=np.float64)
+    fx[:, :-1] = p[:, :-1]
+    fy[:-1, :] = q[:-1, :]
+    div = (fx - np.roll(fx, 1, axis=1)) + (fy - np.roll(fy, 1, axis=0))
+    div = div.astype(np.float64, copy=False)
+
+    # Soluzione globale iniziale
+    Z = np.zeros((M, N), dtype=np.float64)
+
+    # === STESSI OPERATORI 1D DELLA VERSIONE CPU ===
+    def one_dim_op_cupy(n, is_global_left, is_global_right):
+        """
+        Stesso operatore 1D della versione CPU, ma costruito con CuPy sparse
+        """
+        # Costruzione manuale della matrice tridiagonale
+        rows = []
+        cols = []
+        data = []
+        
+        for i in range(n):
+            # Diagonale principale
+            rows.append(i)
+            cols.append(i)
+            if (i == 0 and is_global_left) or (i == n-1 and is_global_right):
+                data.append(-1.0)  # Bordi globali
+            else:
+                data.append(-2.0)  # Interno
+            
+            # Sovradiagonale
+            if i < n - 1:
+                rows.append(i)
+                cols.append(i + 1)
+                data.append(1.0)
+            
+            # Sottodiagonale  
+            if i > 0:
+                rows.append(i)
+                cols.append(i - 1)
+                data.append(1.0)
+        
+        # Converti a CuPy arrays
+        rows = cp.asarray(rows, dtype=cp.int32)
+        cols = cp.asarray(cols, dtype=cp.int32)
+        data = cp.asarray(data, dtype=cp.float64)
+        
+        return csc_matrix((data, (rows, cols)), shape=(n, n), dtype=cp.float64)
+
+    # Parametri tiling identici alla CPU version
+    core = max(1, tile_size - 2 * overlap)
+    step = core
+    tiles_y = (M - overlap + step - 1) // step
+    tiles_x = (N - overlap + step - 1) // step
+
+    def tile_bounds(ty, tx):
+        """Stessa funzione tile_bounds della CPU version"""
+        y0_core = ty * step
+        x0_core = tx * step
+        y0 = max(0, y0_core - overlap)
+        x0 = max(0, x0_core - overlap)
+        y1 = min(M, y0_core + core + overlap)
+        x1 = min(N, x0_core + core + overlap)
+        cy0 = y0_core - y0
+        cx0 = x0_core - x0
+        cy1 = cy0 + min(core, y1 - y0 - cy0)
+        cx1 = cx0 + min(core, x1 - x0 - cx0)
+        return (y0, y1, x0, x1, cy0, cy1, cx0, cx1)
+
+    print(f"Tiles: {tiles_y} x {tiles_x}  (core={core}, overlap={overlap})")
+
+    def process_tile_cupy(ty, tx, div, Z):
+        """
+        Processo tile identico alla CPU version, ma eseguito su GPU
+        """
+        y0, y1, x0, x1, cy0, cy1, cx0, cx1 = tile_bounds(ty, tx)
+        if cy1 <= cy0 or cx1 <= cx0:
+            return None
+
+        # Finestre (su CPU)
+        f_win = div[y0:y1, x0:x1]
+        z_win = Z[y0:y1, x0:x1]
+        
+        # Core da risolvere
+        mh = cy1 - cy0
+        nh = cx1 - cx0
+        f_core = f_win[cy0:cy1, cx0:cx1].copy()
+        
+        # === STESSA LOGICA DI INTERFACCIA DELLA CPU VERSION ===
+        has_top = (cy0 > 0)
+        has_bottom = (cy1 < (y1 - y0))
+        has_left = (cx0 > 0)
+        has_right = (cx1 < (x1 - x0))
+        
+        if has_top:
+            b_top = z_win[cy0 - 1, cx0:cx1]
+            f_core[0, :] += b_top
+        if has_bottom:
+            b_bottom = z_win[cy1, cx0:cx1]
+            f_core[-1, :] += b_bottom
+        if has_left:
+            b_left = z_win[cy0:cy1, cx0 - 1]
+            f_core[:, 0] += b_left
+        if has_right:
+            b_right = z_win[cy0:cy1, cx1]
+            f_core[:, -1] += b_right
+        
+        # === STESSI FLAGS PER BORDI GLOBALI ===
+        global_top = (y0 + cy0 == 0)
+        global_bottom = (y0 + cy1 == M)
+        global_left = (x0 + cx0 == 0)
+        global_right = (x0 + cx1 == N)
+        
+        # === STESSI OPERATORI 1D CON KRONECKER ===
+        # Trasferimento su GPU
+        f_core_cp = cp.asarray(f_core, dtype=cp.float64)
+        
+        # Costruzione operatori identica alla CPU version
+        Tx = one_dim_op_cupy(nh, is_global_left=global_left, is_global_right=global_right)
+        Ty = one_dim_op_cupy(mh, is_global_left=global_top, is_global_right=global_bottom)
+        Ix = eye(nh, format='csc', dtype=cp.float64)
+        Iy = eye(mh, format='csc', dtype=cp.float64)
+        
+        A = kron(Iy, Tx) + kron(Ty, Ix)  # Stesso segno/schema del globale
+        rhs = f_core_cp.ravel()
+        
+        # CG con stessi parametri della CPU version
+        z_vec, info = cg(A, rhs, tol=cg_tol, maxiter=cg_maxit)
+        if info != 0:
+            pass  # Stessa gestione della CPU version
+            
+        z_core = z_vec.reshape((mh, nh))
+        
+        # Ritorna risultato su CPU
+        z_core_cpu = cp.asnumpy(z_core)
+        return (y0 + cy0, y0 + cy1, x0 + cx0, x0 + cx1, z_core_cpu)
+
+    # === STESSO LOOP ITERATIVO DELLA CPU VERSION ===
+    t_all = time.time()
+    for it in range(1, n_schwarz_iters + 1):
+        t_it = time.time()
+        
+        # Outer progress bar for iterations
+        with tqdm(total=tiles_y * tiles_x, desc=f"Iter {it}/{n_schwarz_iters}", unit="tile") as pbar:
+            for ty in range(tiles_y):
+                for tx in range(tiles_x):
+                    result = process_tile_cupy(ty, tx, div, Z)
+                    if result is not None:
+                        y_start, y_end, x_start, x_end, z_core = result
+                        
+                        # Applicazione rilassamento (opzionale, non presente nella CPU version)
+                        if relaxation != 1.0:
+                            z_old = Z[y_start:y_end, x_start:x_end]
+                            Z[y_start:y_end, x_start:x_end] = (1.0 - relaxation) * z_old + relaxation * z_core
+                        else:
+                            Z[y_start:y_end, x_start:x_end] = z_core    
+                    # Increment the progress bar
+                    pbar.update(1)
+
+        # Libera memoria GPU
+        cp.get_default_memory_pool().free_all_blocks()
+        
+        print(f"[Iter {it}/{n_schwarz_iters}] sweep done in {time.time()-t_it:.2f}s")
+
+    # === STESSA NORMALIZZAZIONE DELLA CPU VERSION ===
+    Z -= np.min(Z)
+    print(f"=== CuPy tiled solve complete in {time.time()-t_all:.2f}s ===")
+    return Z
+
+def poisson_solver_gpu( 
+    normals,
+    cg_tol=1e-5,
+    cg_maxit=5000,):
+    # Operatori 1D come nella CPU (Neumann modificata sui bordi globali)
+    def one_dim_op_cupy(n, is_global_left, is_global_right):
+        rows, cols, data = [], [], []
+        for i in range(n):
+            rows.append(i); cols.append(i)
+            data.append(-1.0 if (i == 0 and is_global_left) or (i == n-1 and is_global_right) else -2.0)
+            if i < n-1:
+                rows.append(i); cols.append(i+1); data.append(1.0)
+            if i > 0:
+                rows.append(i); cols.append(i-1); data.append(1.0)
+        rows = cp.asarray(rows, dtype=cp.int32)
+        cols = cp.asarray(cols, dtype=cp.int32)
+        data = cp.asarray(data, dtype=cp.float64)
+        return csc_matrix((data, (rows, cols)), shape=(n, n), dtype=cp.float64)
+    t_all = time.time()
+    M, N = normals.shape[:2]
+    nx, ny, nz = normals[..., 0], normals[..., 1], normals[..., 2]
+    epsilon = 1e-6
+    p = -nx / (nz + epsilon)
+    q = -ny / (nz + epsilon)
+
+    # Stessa discretizzazione della CPU version
+    fx = np.zeros_like(p, dtype=np.float64)
+    fy = np.zeros_like(q, dtype=np.float64)
+    fx[:, :-1] = p[:, :-1]
+    fy[:-1, :] = q[:-1, :]
+    div = (fx - np.roll(fx, 1, axis=1)) + (fy - np.roll(fy, 1, axis=0))
+    div = div.astype(np.float64, copy=False)
+
+    # Soluzione globale iniziale
+    Z = np.zeros((M, N), dtype=np.float64)
+
+    # Costruisci A = kron(Iy, Tx) + kron(Ty, Ix)
+    Tx = one_dim_op_cupy(N, is_global_left=True,  is_global_right=True)
+    Ty = one_dim_op_cupy(M, is_global_left=True,  is_global_right=True)
+    Ix = eye(N, format='csc', dtype=cp.float64)
+    Iy = eye(M, format='csc', dtype=cp.float64)
+    A  = kron(Iy, Tx) + kron(Ty, Ix)
+
+    rhs = cp.asarray(div, dtype=cp.float64).ravel()
+    z_vec, info = cg(A, rhs, tol=cg_tol, maxiter=cg_maxit)
+    if info != 0:
+        print(f"[single-tile] CG ha restituito info={info} (continua comunque)")
+
+    print(f"=== CuPy Poisson solve complete in {time.time()-t_all:.2f}s ===")
+    Z = cp.asnumpy(z_vec.reshape(M, N))
+    Z -= Z.min()
+    return Z
+
+def depth_from_gradient_poisson_cupy(
+    legacy_result,
+    normals,
+    accuracy=3,
+    max_iters=10,
+    tile_size=4096,
+    overlap=256,
+    max_gpu_memory_gb=8,
+    relaxation=1.0,
+    cg_tol=1e-5,
+    cg_maxit=5000):    
+    # Estrai dimensioni
+    M, N = normals.shape[:2]
+    print(f"=== CuPy Tiled Poisson (CPU Math Compatible) ===")
+    print(f"Input size: {M}×{N} = {M*N:,} px")
+
+    # Stima memoria e ridimensionamento tile (stesso della versione originale)
+    tile_points = tile_size * tile_size
+    mem_per_tile_gb = (tile_points * 8 * 6) / (1024**3)
+    if mem_per_tile_gb > max_gpu_memory_gb * 0.8:
+        new_tile = int(tile_size * np.sqrt(max_gpu_memory_gb * 0.8 / mem_per_tile_gb))
+        new_tile = max(new_tile, overlap + 64)
+        print(f"[mem] riduco tile {tile_size}→{new_tile}")
+        tile_size = new_tile
+    # === UNA SOLA TILE -> RICADE NEL CASO NO TILING ===
+    if tile_size >= min(M, N):
+        print(f"=== Small Problem -> No Tiling ===")
+        return poisson_solver_gpu(normals)
+
+    # === STESSO CALCOLO GRADIENTE -> DIVERGENZA DELLA VERSIONE CPU ===
+    nx, ny, nz = normals[..., 0], normals[..., 1], normals[..., 2]
+    epsilon = 1e-6
+    p = -nx / (nz + epsilon)
+    q = -ny / (nz + epsilon)
+
+    # Stessa discretizzazione della CPU version
+    fx = np.zeros_like(p, dtype=np.float64)
+    fy = np.zeros_like(q, dtype=np.float64)
+    fx[:, :-1] = p[:, :-1]
+    fy[:-1, :] = q[:-1, :]
+    div = (fx - np.roll(fx, 1, axis=1)) + (fy - np.roll(fy, 1, axis=0))
+    div = div.astype(np.float64, copy=False)
+    # Soluzione globale iniziale
+    Z = np.zeros((M, N), dtype=np.float64)
+
+    # === STESSI OPERATORI 1D DELLA VERSIONE CPU ===
+    def one_dim_op_cupy(n, is_global_left, is_global_right):
+        """
+        Stesso operatore 1D della versione CPU, ma costruito con CuPy sparse
+        """
+        # Costruzione manuale della matrice tridiagonale
+        rows = []
+        cols = []
+        data = []
+        
+        for i in range(n):
+            # Diagonale principale
+            rows.append(i)
+            cols.append(i)
+            if (i == 0 and is_global_left) or (i == n-1 and is_global_right):
+                data.append(-1.0)  # Bordi globali
+            else:
+                data.append(-2.0)  # Interno
+            
+            # Sovradiagonale
+            if i < n - 1:
+                rows.append(i)
+                cols.append(i + 1)
+                data.append(1.0)
+            
+            # Sottodiagonale  
+            if i > 0:
+                rows.append(i)
+                cols.append(i - 1)
+                data.append(1.0)
+        
+        # Converti a CuPy arrays
+        rows = cp.asarray(rows, dtype=cp.int32)
+        cols = cp.asarray(cols, dtype=cp.int32)
+        data = cp.asarray(data, dtype=cp.float64)
+        
+        return csc_matrix((data, (rows, cols)), shape=(n, n), dtype=cp.float64)
+
+    # Parametri tiling identici alla CPU version
+    core = max(1, tile_size - 2 * overlap)
+    step = core
+    tiles_y = (M - overlap + step - 1) // step
+    tiles_x = (N - overlap + step - 1) // step
+
+    def tile_bounds(ty, tx):
+        """Stessa funzione tile_bounds della CPU version"""
+        y0_core = ty * step
+        x0_core = tx * step
+        y0 = max(0, y0_core - overlap)
+        x0 = max(0, x0_core - overlap)
+        y1 = min(M, y0_core + core + overlap)
+        x1 = min(N, x0_core + core + overlap)
+        cy0 = y0_core - y0
+        cx0 = x0_core - x0
+        cy1 = cy0 + min(core, y1 - y0 - cy0)
+        cx1 = cx0 + min(core, x1 - x0 - cx0)
+        return (y0, y1, x0, x1, cy0, cy1, cx0, cx1)
+
+    print(f"Tiles: {tiles_y} x {tiles_x}  (core={core}, overlap={overlap})")
+
+    def process_tile_cupy(ty, tx, div, Z):
+        """
+        Processo tile identico alla CPU version, ma eseguito su GPU
+        """
+        y0, y1, x0, x1, cy0, cy1, cx0, cx1 = tile_bounds(ty, tx)
+        if cy1 <= cy0 or cx1 <= cx0:
+            return None
+
+        # Finestre (su CPU)
+        f_win = div[y0:y1, x0:x1]
+        z_win = Z[y0:y1, x0:x1]
+        
+        # Core da risolvere
+        mh = cy1 - cy0
+        nh = cx1 - cx0
+        f_core = f_win[cy0:cy1, cx0:cx1].copy()
+        
+        # === STESSA LOGICA DI INTERFACCIA DELLA CPU VERSION ===
+        has_top = (cy0 > 0)
+        has_bottom = (cy1 < (y1 - y0))
+        has_left = (cx0 > 0)
+        has_right = (cx1 < (x1 - x0))
+        
+        if has_top:
+            b_top = z_win[cy0 - 1, cx0:cx1]
+            f_core[0, :] += b_top
+        if has_bottom:
+            b_bottom = z_win[cy1, cx0:cx1]
+            f_core[-1, :] += b_bottom
+        if has_left:
+            b_left = z_win[cy0:cy1, cx0 - 1]
+            f_core[:, 0] += b_left
+        if has_right:
+            b_right = z_win[cy0:cy1, cx1]
+            f_core[:, -1] += b_right
+        
+        # === STESSI FLAGS PER BORDI GLOBALI ===
+        global_top = (y0 + cy0 == 0)
+        global_bottom = (y0 + cy1 == M)
+        global_left = (x0 + cx0 == 0)
+        global_right = (x0 + cx1 == N)
+        
+        # === STESSI OPERATORI 1D CON KRONECKER ===
+        # Trasferimento su GPU
+        f_core_cp = cp.asarray(f_core, dtype=cp.float64)
+        
+        # Costruzione operatori identica alla CPU version
+        Tx = one_dim_op_cupy(nh, is_global_left=global_left, is_global_right=global_right)
+        Ty = one_dim_op_cupy(mh, is_global_left=global_top, is_global_right=global_bottom)
+        Ix = eye(nh, format='csc', dtype=cp.float64)
+        Iy = eye(mh, format='csc', dtype=cp.float64)
+        
+        A = kron(Iy, Tx) + kron(Ty, Ix)  # Stesso segno/schema del globale
+        rhs = f_core_cp.ravel()
+        
+        # CG con stessi parametri della CPU version
+        z_vec, info = cg(A, rhs, tol=cg_tol, maxiter=cg_maxit)
+        if info != 0:
+            pass  # Stessa gestione della CPU version
+            
+        z_core = z_vec.reshape((mh, nh))
+        
+        # Ritorna risultato su CPU
+        z_core_cpu = cp.asnumpy(z_core)
+        return (y0 + cy0, y0 + cy1, x0 + cx0, x0 + cx1, z_core_cpu)
+
+    # === STESSO LOOP ITERATIVO DELLA CPU VERSION ===
+    t_all = time.time()
+    divergence = 100
+    it = 0
+    while divergence > accuracy or it < max_iters:
+        t_it = time.time()
+        
+        # Outer progress bar for iterations
+        with tqdm(total=tiles_y * tiles_x, desc=f"Iter {it}", unit="tile") as pbar:
+            for ty in range(tiles_y):
+                for tx in range(tiles_x):
+                    result = process_tile_cupy(ty, tx, div, Z)
+                    if result is not None:
+                        y_start, y_end, x_start, x_end, z_core = result
+                        
+                        # Applicazione rilassamento (opzionale, non presente nella CPU version)
+                        if relaxation != 1.0:
+                            z_old = Z[y_start:y_end, x_start:x_end]
+                            Z[y_start:y_end, x_start:x_end] = (1.0 - relaxation) * z_old + relaxation * z_core
+                        else:
+                            Z[y_start:y_end, x_start:x_end] = z_core    
+                    # Increment the progress bar
+                    pbar.update(1)
+
+        # Libera memoria GPU
+        cp.get_default_memory_pool().free_all_blocks()
+        divergence = calc_divergence(legacy_result, Z - np.min(Z))
+        it += 1
+        print(f"[Iter {it}] sweep done in {time.time()-t_it:.2f}s  |  div={divergence:.6f}")
+
+    # === STESSA NORMALIZZAZIONE DELLA CPU VERSION ===
+    # Z -= np.min(Z)
+    if it == max_iters and divergence > accuracy:
+        print(f"[WARNING] Didn't converge after {max_iters} iters (div={divergence:.6f})")
+        return -1
+    print(f"=== CuPy tiled solve complete in {time.time()-t_all:.2f}s ===")
+    return it
+
+def calc_divergence(legacy, new):
+    # Calcolare divergenza tra i due risultati matriciali e darne un valore percentuale
+    divergence = np.abs(legacy - new) / (np.abs(legacy) + 1e-5)
+    print(f"Divergence: {np.mean(divergence) * 100:.2f}%")
+    return np.mean(divergence)

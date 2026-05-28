@@ -3,13 +3,15 @@ Tests for depth map reconstruction from normal maps.
 """
 
 import pytest
+import time
 import numpy as np
-from core.depth_maps import compute_depth_map
+from core.depth_maps import compute_depth_maps
 from utils.image_processing import poly_correction
 
-
-def test_compute_depth_map_simple():
+@pytest.mark.parametrize("method",['poisson', 'fullcuda', 'hybrid', 'vectorized'])
+def test_compute_depth_map_simple(method):
     """Test depth map computation with a simple gradient."""
+    start = time.time()
     # Create a simple 10x10 normal map
     h, w = 10, 10
     
@@ -31,17 +33,18 @@ def test_compute_depth_map_simple():
     expected_depth -= np.mean(expected_depth)  # Center around zero
     
     # Compute depth map
-    depth_map = compute_depth_map(normals)
+    depth_map = compute_depth_maps(normals, method=method)
     
     # Remove any constant offset (integration constant)
     depth_map -= np.mean(depth_map)
-    
+    print(f"Time taken for {method} method: {time.time() - start:.4f} seconds")
     # Check results
     assert np.allclose(depth_map, expected_depth, atol=0.05)
-
-
-def test_compute_depth_map_sphere():
+    
+@pytest.mark.parametrize("method",['poisson', 'fullcuda', 'hybrid', 'vectorized'])
+def test_compute_depth_map_masked(method):
     """Test depth map computation with a hemisphere."""
+    start = time.time()
     # Create a 20x20 normal map for a hemisphere
     h, w = 20, 20
     
@@ -72,18 +75,18 @@ def test_compute_depth_map_sphere():
     expected_depth[mask] = np.sqrt(1.0 - r_squared[mask])
     
     # Compute depth map
-    depth_map = compute_depth_map(normals, mask=mask)
-    
+    depth_map = compute_depth_maps(normals, mask=mask, method=method)
+
     # Scale to match expected depth (since integration might introduce scaling)
     if np.sum(depth_map[mask]) > 0:  # Avoid division by zero
         scale = np.sum(expected_depth[mask]) / np.sum(depth_map[mask])
         depth_map *= scale
     
+    print(f"Time taken for {method} method: {time.time() - start:.4f} seconds")
     # Check results only in the masked region
     assert np.allclose(depth_map[mask], expected_depth[mask], atol=0.2)
 
-
-def test_poly_correction():
+def test_poly_correction(method):
     """Test polynomial correction for depth maps."""
     # Create a depth map with a global trend
     h, w = 20, 20

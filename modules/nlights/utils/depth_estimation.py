@@ -22,7 +22,6 @@ import time
 
 
 
-
 # def depth_from_gradient_t2(p, q, options=None):
 #     """
 #     Estimate depth map Z from gradient fields p and q such that:
@@ -561,7 +560,7 @@ def depth_from_gradient_poisson(normals):
     # print("Poisson: Computing M: Done", flush=True)
     ####
     t0 = time.time()
-    Z_flat, info = cg(A, b, atol=1e-5, rtol=1e-5, maxiter=5000) #M=M
+    Z_flat, info = scipy_cg(A, b, rtol=1e-5, atol=1e-5, maxiter=5000) #M=M
     elapsed = time.time() - t0
     print(f"Poisson: Solving time: {elapsed:.2f} seconds")
 
@@ -576,7 +575,6 @@ def depth_from_gradient_poisson(normals):
     print("Poisson: System solved", flush=True)
     return Z
 
-## Parallelizzazione su GPU con CuPy e tiling
 def depth_from_gradient_poisson_cupy_tiled(
     normals,
     tile_size=4096,
@@ -755,32 +753,32 @@ def depth_from_gradient_poisson_cupy_tiled(
         z_core_cpu = cp.asnumpy(z_core)
         return (y0 + cy0, y0 + cy1, x0 + cx0, x0 + cx1, z_core_cpu)
 
-    # === LOOP ITERATIVO SU TILES ===
+    # === STESSO LOOP ITERATIVO DELLA CPU VERSION ===
     t_all = time.time()
-
-    try:
-        for it in range(1, n_schwarz_iters + 1):
+    for it in range(1, n_schwarz_iters + 1):
+        t_it = time.time()
+        
+        # Outer progress bar for iterations
+        with tqdm(total=tiles_y * tiles_x, desc=f"Iter {it}/{n_schwarz_iters}", unit="tile") as pbar:
             for ty in range(tiles_y):
                 for tx in range(tiles_x):
-                    t_it = time.time()
                     result = process_tile_cupy(ty, tx, div, Z)
                     if result is not None:
                         y_start, y_end, x_start, x_end, z_core = result
+                        
                         # Applicazione rilassamento (opzionale, non presente nella CPU version)
                         if relaxation != 1.0:
                             z_old = Z[y_start:y_end, x_start:x_end]
                             Z[y_start:y_end, x_start:x_end] = (1.0 - relaxation) * z_old + relaxation * z_core
                         else:
-                            Z[y_start:y_end, x_start:x_end] = z_core
-                    t_end = time.time()
-                    print(f"[Iter {it}/{n_schwarz_iters}] tile ({ty}, {tx}) processed in {t_end - t_it:.2f}s")
-            # Libera memoria GPU
-            cp.get_default_memory_pool().free_all_blocks()
-    except Exception as e:
-        print(f"[Iter {it}/{n_schwarz_iters}] error:")
-        print(e)
-        raise e
-    print(f"[Iter {it}/{n_schwarz_iters}] sweep done in {time.time()-t_all:.2f}s")
+                            Z[y_start:y_end, x_start:x_end] = z_core    
+                    # Increment the progress bar
+                    pbar.update(1)
+
+        # Libera memoria GPU
+        cp.get_default_memory_pool().free_all_blocks()
+        
+        print(f"[Iter {it}/{n_schwarz_iters}] sweep done in {time.time()-t_it:.2f}s")
 
     # === STESSA NORMALIZZAZIONE DELLA CPU VERSION ===
     Z -= np.min(Z)
@@ -839,7 +837,6 @@ def depth_from_gradient_poisson_cupy(
     Z = cp.asnumpy(z_vec.reshape(M, N))
     Z -= Z.min()
     return Z
-
 
 def depth_from_gradient_torch(normals, device='cuda'):
 

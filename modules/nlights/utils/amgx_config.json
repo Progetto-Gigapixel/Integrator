@@ -1,0 +1,15 @@
+{
+    "config_version": 2,
+    "determinism_flag": 1,
+    "exception_handling" : 1,
+    "solver": {
+        "preconditioner": {
+            "scope": "amg",
+            "algorithm": "CLASSICAL"
+        },
+        "solver": "PCG",
+        "print_solve_stats": 1,
+        "max_iters": 5000,
+        "tolerance": 1e-5
+    }
+}
